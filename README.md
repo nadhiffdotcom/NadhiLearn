@@ -1,43 +1,83 @@
+
 # NadhiLearn — Online Course Platform
 
-Starter project Next.js (JavaScript), Tailwind CSS, PostgreSQL (Raw SQL).
+NadhiLearn adalah platform pembelajaran online yang menyediakan ruang bagi pengguna untuk memperoleh pengetahuan baru, mengembangkan keterampilan, dan meningkatkan potensi diri melalui berbagai kursus yang mudah diakses.
+
+## Teknologi yang Digunakan
+
+- Next.js
+- React
+- Tailwind CSS
+- PostgreSQL
+- Node.js
 
 ## Requirements
+
 - Node.js LTS
 - PostgreSQL + pgAdmin 4
-- VS Code
+- Visual Studio Code
 
-## 1. Install dependencies
-Open this folder in VS Code, then run:
+## Instalasi
+
+### 1. Install Dependencies
+
+Jalankan perintah berikut di terminal:
 
 ```bash
 npm install
 ```
 
-## 2. Create PostgreSQL database
-In pgAdmin, create a database named `NadhiLearn_db`.
-Open Query Tool for that database and execute the full contents of `database.sql`.
+### 2. Membuat Database
 
-## 3. Configure environment
-Copy `.env.example` to `.env.local`, then replace `YOUR_POSTGRES_PASSWORD`.
-Generate a JWT secret with:
+1. Buka pgAdmin.
+2. Buat database bernama `NadhiLearn_db`.
+3. Buka Query Tool pada database tersebut.
+4. Jalankan seluruh isi file `database.sql`.
+
+### 3. Konfigurasi Environment
+
+Salin `.env.example` menjadi `.env.local`.
+
+Isi password PostgreSQL dan buat JWT secret menggunakan perintah:
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-Put the generated value in `JWT_SECRET`.
+Masukkan hasilnya ke variabel `JWT_SECRET` di `.env.local`.
 
-## 4. Run
+### 4. Menjalankan Aplikasi
+
 ```bash
 npm run dev
 ```
-Open http://localhost:3000
 
-Test database connection at http://localhost:3000/api/health
+Buka aplikasi melalui:
 
-## Notes
-- `.env.local` contains secrets; never commit it to GitHub.
-- `database.sql` is intentionally located outside `/app`, as required by the assignment.
-- The homepage currently uses sample course cards. Authentication, admin/teacher/student dashboards, and CRUD modules are the next implementation stages.
-- All database access should use parameterized PostgreSQL queries via `pg` (Raw SQL), not an ORM.
+http://localhost:3000
+
+Untuk menguji koneksi database:
+
+http://localhost:3000/api/health
+
+## Fitur Platform
+
+Fitur platform akan dikembangkan secara bertahap, meliputi:
+
+- Registrasi dan login pengguna
+- Manajemen pengguna
+- Manajemen kursus
+- Katalog dan pencarian kursus
+- Pendaftaran kursus
+- Materi dan progres pembelajaran
+- Forum diskusi
+
+## Catatan
+
+- File `.env.local` berisi informasi rahasia dan tidak boleh diunggah ke GitHub.
+- File `database.sql` berada di luar folder `/app`.
+- Akses database menggunakan PostgreSQL Raw SQL melalui library `pg`, bukan ORM.
+
+## Developer
+
+NadhiLearn — Individual Project 4
