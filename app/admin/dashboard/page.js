@@ -137,12 +137,19 @@ export default async function AdminDashboard() {
 
           </div>
 
-          {/* LOGIN / LOGOUT KANAN */}
+          {/* AKUN DAN LOGOUT KANAN */}
           <div className="ml-auto flex shrink-0 items-center justify-end gap-5 text-base font-semibold">
 
             <span className="hidden text-[#0B1F3A] sm:inline">
               Hi, {admin.username}
             </span>
+
+            <Link
+              href="/account/profile"
+              className="text-[#0B1F3A] transition hover:underline hover:underline-offset-4"
+            >
+              Pengaturan Akun
+            </Link>
 
             <LogoutButton />
 

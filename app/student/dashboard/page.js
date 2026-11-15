@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -120,46 +121,51 @@ export default async function StudentDashboard() {
             </Link>
           </div>
 
-          
-          
-        {/* MENU TENGAH */}
-        <div className="absolute left-1/2 hidden -translate-x-1/2 items-center justify-center gap-7 whitespace-nowrap text-base text-[#0B1F3A] md:flex">
+          {/* MENU TENGAH */}
+          <div className="absolute left-1/2 hidden -translate-x-1/2 items-center justify-center gap-7 whitespace-nowrap text-base text-[#0B1F3A] md:flex">
 
-          <Link
-            href="/#home"
-            className="font-normal transition-all duration-200 hover:font-bold hover:underline hover:underline-offset-8"
-          >
-            Home
-          </Link>
+            <Link
+              href="/#home"
+              className="font-normal transition-all duration-200 hover:font-bold hover:underline hover:underline-offset-8"
+            >
+              Home
+            </Link>
 
-          <Link
-            href="/#courses"
-            className="font-normal transition-all duration-200 hover:font-bold hover:underline hover:underline-offset-8"
-          >
-            Courses
-          </Link>
+            <Link
+              href="/#courses"
+              className="font-normal transition-all duration-200 hover:font-bold hover:underline hover:underline-offset-8"
+            >
+              Courses
+            </Link>
 
-          <Link
-            href="/#about"
-            className="font-normal transition-all duration-200 hover:font-bold hover:underline hover:underline-offset-8"
-          >
-            About
-          </Link>
+            <Link
+              href="/#about"
+              className="font-normal transition-all duration-200 hover:font-bold hover:underline hover:underline-offset-8"
+            >
+              About
+            </Link>
 
-          <Link
-            href="/student/dashboard"
-            className="font-bold underline underline-offset-8"
-          >
-            Student Dashboard
-          </Link>
+            <Link
+              href="/student/dashboard"
+              className="font-bold underline underline-offset-8"
+            >
+              Student Dashboard
+            </Link>
 
-        </div>
+          </div>
 
+          {/* AKUN DAN LOGOUT KANAN */}
+          <div className="ml-auto flex shrink-0 items-center justify-end gap-5">
 
+            <Link
+              href="/account/profile"
+              className="font-semibold text-[#0B1F3A] transition hover:underline hover:underline-offset-4"
+            >
+              Pengaturan Akun
+            </Link>
 
-          {/* LOGOUT KANAN */}
-          <div className="ml-auto flex shrink-0 items-center justify-end">
             <LogoutButton />
+
           </div>
 
         </div>

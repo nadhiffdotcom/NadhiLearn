@@ -1,4 +1,6 @@
 
+import Link from "next/link";
+
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import pool from "@/lib/db";
@@ -177,9 +179,18 @@ export default async function TeacherDashboard() {
 
           </div>
 
-          {/* LOGOUT KANAN */}
-          <div className="ml-auto flex shrink-0 items-center justify-end">
+          {/* PENGATURAN AKUN DAN LOGOUT KANAN */}
+          <div className="ml-auto flex shrink-0 items-center justify-end gap-5">
+
+            <Link
+              href="/account/profile"
+              className="font-semibold text-[#0B1F3A] transition hover:underline hover:underline-offset-4"
+            >
+              Pengaturan Akun
+            </Link>
+
             <LogoutButton />
+
           </div>
 
         </div>
