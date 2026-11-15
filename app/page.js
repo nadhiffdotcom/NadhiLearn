@@ -1,61 +1,93 @@
+"use client";
+
+import { useState } from "react";
 
 const courses = [
   {
     category: "Programming",
     title: "Full Stack Web Development",
     teacher: "Andi Pratama",
-    lessons: "12 lessons",
+    lessons: 12,
   },
   {
     category: "Design",
     title: "UI/UX Design Masterclass",
     teacher: "Sarah Putri",
-    lessons: "10 lessons",
+    lessons: 10,
   },
   {
     category: "Marketing",
     title: "Digital Marketing Strategy",
     teacher: "Budi Santoso",
-    lessons: "8 lessons",
+    lessons: 8,
   },
 ];
 
 export default function Home() {
+  const [activeMenu, setActiveMenu] = useState("home");
+
+  const menuClass = (menu) =>
+    `cursor-pointer transition-all duration-200 ${
+      activeMenu === menu
+        ? "font-bold underline underline-offset-8"
+        : "font-normal hover:underline hover:underline-offset-8"
+    }`;
+
   return (
     <main className="min-h-screen bg-[#0B1F3A] text-white">
 
-      {/* NAVBAR STICKY */}
+      {/* NAVBAR */}
       <nav className="sticky top-0 z-50 w-full border-b border-[#0B1F3A] bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
 
           {/* LOGO */}
           <a
-            href="/"
-            className="text-xl font-bold tracking-tight text-[#0B1F3A]"
+            href="#home"
+            onClick={() => setActiveMenu("home")}
+            className="flex items-center gap-1"
           >
-            NadhiLearn.
+            <img
+              src="/logo-n-navy.png"
+              alt="NadhiLearn Logo"
+              className="h-11 w-11 object-contain"
+            />
+
+            <span className="text-3xl font-bold tracking-tight text-[#0B1F3A]">
+              NadhiLearn.
+            </span>
           </a>
 
           {/* MENU */}
-          <div className="hidden items-center gap-9 text-sm text-[#0B1F3A] md:flex">
+          <div className="hidden items-center gap-9 text-lg text-[#0B1F3A] md:flex">
+
             <a
-              href="/"
-              className="font-semibold underline underline-offset-8"
+              href="#home"
+              onClick={() => setActiveMenu("home")}
+              className={menuClass("home")}
             >
               Home
             </a>
 
-            <a href="#courses" className="hover:underline">
+            <a
+              href="#courses"
+              onClick={() => setActiveMenu("courses")}
+              className={menuClass("courses")}
+            >
               Courses
             </a>
 
-            <a href="#about" className="hover:underline">
+            <a
+              href="#about"
+              onClick={() => setActiveMenu("about")}
+              className={menuClass("about")}
+            >
               About
             </a>
+
           </div>
 
           {/* AUTH BUTTON */}
-          <div className="flex items-center gap-5 text-sm font-semibold">
+          <div className="flex items-center gap-6 text-lg font-semibold">
             <a
               href="/login"
               className="text-[#0B1F3A] hover:underline"
@@ -65,7 +97,7 @@ export default function Home() {
 
             <a
               href="/register"
-              className="rounded-lg bg-[#0B1F3A] px-5 py-3 text-white hover:bg-white hover:text-[#0B1F3A] hover:outline hover:outline-1 hover:outline-[#0B1F3A]"
+              className="rounded-lg bg-[#0B1F3A] px-6 py-3.5 text-lg text-white hover:bg-white hover:text-[#0B1F3A] hover:outline hover:outline-1 hover:outline-[#0B1F3A]"
             >
               Sign up
             </a>
@@ -74,193 +106,187 @@ export default function Home() {
         </div>
       </nav>
 
+
       {/* HERO SECTION */}
-      <section className="mx-auto max-w-6xl px-6 pb-24 pt-24 md:pb-32 md:pt-32">
+      <section
+        id="home"
+        className="mx-auto max-w-7xl scroll-mt-28 px-6 pb-24 pt-24 md:pb-32 md:pt-28"
+      >
+        <p className="mb-12 text-sm font-bold uppercase tracking-[0.2em]">
+          Online Learning Platform
+        </p>
 
-        <div className="max-w-3xl">
+        <div className="grid items-center gap-12 lg:grid-cols-[1.4fr_1fr]">
 
-          <p className="mb-7 text-xs font-semibold uppercase tracking-[0.2em]">
-            Online Learning Platform
-          </p>
+          <div>
+            <h1 className="max-w-3xl text-5xl font-bold leading-tight md:text-6xl">
+              Learn something.
+              <br />
+              Become something.
+            </h1>
 
-          <h1 className="text-5xl leading-[1.12] font-semibold tracking-tight md:text-7xl">
-            Learn something.
-            <br />
-            Become something.
-          </h1>
+            <p className="mt-8 max-w-2xl text-lg leading-8">
+              Discover new skills, learn from experienced teachers, and
+              develop your potential through NadhiLearn.
+            </p>
 
-          <p className="mt-8 max-w-xl text-base leading-8 md:text-lg">
-            Kembangkan kemampuan dan raih tujuanmu melalui
-            pengalaman belajar online yang lebih mudah dan fleksibel.
-          </p>
+            <div className="mt-10 flex flex-wrap gap-4">
+              <a
+                href="#courses"
+                onClick={() => setActiveMenu("courses")}
+                className="rounded-lg bg-white px-7 py-4 font-bold text-[#0B1F3A] transition hover:bg-[#0B1F3A] hover:text-white hover:outline hover:outline-1 hover:outline-white"
+              >
+                Explore Courses
+              </a>
 
-          <div className="mt-10 flex flex-wrap items-center gap-6">
+              <a
+                href="/register"
+                className="rounded-lg border border-white px-7 py-4 font-bold text-white transition hover:bg-white hover:text-[#0B1F3A]"
+              >
+                Become a Teacher
+              </a>
+            </div>
+          </div>
 
-            <a
-              href="#courses"
-              className="rounded-lg bg-white px-7 py-4 text-sm font-semibold text-[#0B1F3A] hover:bg-[#0B1F3A] hover:text-white hover:outline hover:outline-1 hover:outline-white"
-            >
-              Explore courses
-            </a>
-
-            <a
-              href="/register-teacher"
-              className="text-sm font-semibold text-white underline underline-offset-4"
-            >
-              Become a teacher
-            </a>
-
+          <div className="flex items-center justify-center lg:justify-end">
+            <img
+              src="/logo-nadhilearn.png"
+              alt="NadhiLearn"
+              className="h-auto w-[340px] max-w-full object-contain md:w-[400px] lg:w-[460px]"
+            />
           </div>
 
         </div>
 
         {/* STATISTICS */}
-        <div className="mt-20 grid grid-cols-3 gap-6 border-t border-white pt-8 md:max-w-2xl">
+        <div className="mt-24 grid grid-cols-1 gap-10 border-t border-white/30 pt-10 sm:grid-cols-3">
 
           <div>
-            <p className="text-2xl font-semibold">100+</p>
-            <p className="mt-2 text-xs">Learning materials</p>
+            <h2 className="text-4xl font-bold">100+</h2>
+            <p className="mt-2">Learning Materials</p>
           </div>
 
           <div>
-            <p className="text-2xl font-semibold">20+</p>
-            <p className="mt-2 text-xs">Expert teachers</p>
+            <h2 className="text-4xl font-bold">20+</h2>
+            <p className="mt-2">Expert Teachers</p>
           </div>
 
           <div>
-            <p className="text-2xl font-semibold">500+</p>
-            <p className="mt-2 text-xs">Students</p>
+            <h2 className="text-4xl font-bold">500+</h2>
+            <p className="mt-2">Active Students</p>
           </div>
 
         </div>
       </section>
+
 
       {/* COURSES SECTION */}
       <section
         id="courses"
-        className="border-t border-white"
+        className="scroll-mt-28 bg-white px-6 py-24 text-[#0B1F3A]"
       >
+        <div className="mx-auto max-w-6xl">
 
-        <div className="mx-auto max-w-6xl px-6 py-24">
+          <div className="mb-12">
+            <p className="text-sm font-bold uppercase tracking-[0.2em]">
+              Explore Courses
+            </p>
 
-          {/* SECTION TITLE */}
-          <div className="mb-14 flex flex-wrap items-end justify-between gap-6">
+            <h2 className="mt-4 text-4xl font-bold">
+              Popular Courses
+            </h2>
 
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em]">
-                Discover
-              </p>
-
-              <h2 className="mt-4 text-3xl font-semibold tracking-tight md:text-4xl">
-                Popular courses
-              </h2>
-
-              <p className="mt-4 text-sm leading-7">
-                Pilih kelas dan mulai perjalanan belajarmu.
-              </p>
-            </div>
-
-            <a
-              href="/courses"
-              className="text-sm font-semibold underline underline-offset-4"
-            >
-              View all courses
-            </a>
-
+            <p className="mt-4 max-w-2xl leading-7">
+              Temukan berbagai kelas menarik dan kembangkan kemampuanmu
+              bersama pengajar berpengalaman.
+            </p>
           </div>
 
-          {/* COURSE CARDS */}
-          <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
 
             {courses.map((course, index) => (
-              <article
-                key={course.title}
-                className="group"
+              <div
+                key={index}
+                className="rounded-xl border border-[#0B1F3A] p-7 transition hover:-translate-y-1"
               >
+                <p className="text-sm font-bold uppercase tracking-wider">
+                  {course.category}
+                </p>
 
-                {/* CARD VISUAL */}
-                <div className="flex aspect-[5/3] items-center justify-center rounded-xl border border-white bg-[#0B1F3A] p-6 text-white">
-                  <span className="text-5xl font-light">
-                    0{index + 1}
-                  </span>
-                </div>
+                <h3 className="mt-5 text-2xl font-bold">
+                  {course.title}
+                </h3>
 
-                {/* CARD CONTENT */}
-                <div className="pt-6">
+                <p className="mt-4">
+                  Teacher: {course.teacher}
+                </p>
 
-                  <p className="text-xs font-semibold uppercase tracking-widest">
-                    {course.category}
-                  </p>
+                <p className="mt-2">
+                  {course.lessons} Lessons
+                </p>
 
-                  <h3 className="mt-3 text-xl font-semibold leading-snug">
-                    {course.title}
-                  </h3>
-
-                  <p className="mt-4 text-sm">
-                    {course.teacher}
-                  </p>
-
-                  <div className="mt-6 flex items-center justify-between border-t border-white pt-4">
-
-                    <span className="text-xs">
-                      {course.lessons}
-                    </span>
-
-                    <a
-                      href="/courses"
-                      className="text-sm font-semibold underline underline-offset-4"
-                    >
-                      Learn more
-                    </a>
-
-                  </div>
-                </div>
-
-              </article>
+                <a
+                  href="/courses"
+                  className="mt-8 inline-block rounded-lg bg-[#0B1F3A] px-6 py-3 font-semibold text-white transition hover:bg-white hover:text-[#0B1F3A] hover:outline hover:outline-1 hover:outline-[#0B1F3A]"
+                >
+                  View Course
+                </a>
+              </div>
             ))}
 
           </div>
+
+          <div className="mt-12 text-center">
+            <a
+              href="/courses"
+              className="inline-block border border-[#0B1F3A] px-8 py-3 font-bold transition hover:bg-[#0B1F3A] hover:text-white"
+            >
+              View All Courses
+            </a>
+          </div>
+
         </div>
       </section>
+
 
       {/* ABOUT SECTION */}
       <section
         id="about"
-        className="border-t border-white"
+        className="scroll-mt-28 bg-[#0B1F3A] px-6 py-28 text-white"
       >
+        <div className="mx-auto max-w-6xl">
 
-        <div className="mx-auto max-w-6xl px-6 py-24">
+          <p className="text-sm font-bold uppercase tracking-[0.2em]">
+            About NadhiLearn
+          </p>
 
-          <div className="max-w-2xl">
+          <h2 className="mt-7 max-w-3xl text-4xl font-bold leading-tight md:text-5xl">
+            A better way to learn, grow, and share knowledge.
+          </h2>
 
-            <p className="text-xs font-semibold uppercase tracking-[0.2em]">
-              About NadhiLearn
-            </p>
+          <p className="mt-10 max-w-4xl text-lg leading-10">
+            NadhiLearn adalah platform pembelajaran digital yang
+            mempertemukan siswa dan pengajar dalam satu ruang belajar.
+            Temukan materi, ikuti kelas, dan pantau perkembangan belajarmu.
+          </p>
 
-            <h2 className="mt-5 text-3xl font-semibold leading-tight tracking-tight md:text-4xl">
-              A better way to learn, grow, and share knowledge.
-            </h2>
-
-            <p className="mt-6 text-base leading-8">
-              NadhiLearn adalah platform pembelajaran digital yang
-              mempertemukan siswa dan pengajar dalam satu ruang belajar.
-              Temukan materi, ikuti kelas, dan pantau perkembangan belajarmu.
-            </p>
-
-          </div>
         </div>
       </section>
 
+
       {/* FOOTER */}
-      <footer className="border-t border-white bg-white text-[#0B1F3A]">
+      <footer className="bg-white px-6 py-12 text-[#0B1F3A]">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 md:flex-row">
 
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-5 px-6 py-9">
-
-          <p className="text-lg font-bold">
+          <a
+            href="#home"
+            onClick={() => setActiveMenu("home")}
+            className="text-2xl font-bold"
+          >
             NadhiLearn.
-          </p>
+          </a>
 
-          <p className="text-xs">
+          <p className="text-sm">
             © 2026 NadhiLearn. All rights reserved.
           </p>
 
