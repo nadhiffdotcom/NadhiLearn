@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const courses = [
   {
@@ -26,6 +27,58 @@ const courses = [
 export default function Home() {
   const [activeMenu, setActiveMenu] = useState("home");
 
+  // AUTHENTICATION STATE
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  // CHECK LOGIN STATUS
+  useEffect(() => {
+    async function checkLogin() {
+      try {
+        const response = await fetch("/api/auth/me");
+        const data = await response.json();
+
+        if (data.success) {
+          setUser(data.user);
+        }
+      } catch (error) {
+        console.error("Gagal memeriksa status login:", error);
+      } finally {
+        setAuthLoading(false);
+      }
+    }
+
+    checkLogin();
+  }, []);
+
+  // LOGOUT FUNCTION
+  async function handleLogout() {
+    const confirmed = window.confirm(
+      "Apakah kamu yakin ingin logout?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setUser(null);
+        window.location.href = "/";
+      } else {
+        alert("Logout gagal. Silakan coba lagi.");
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+      alert("Terjadi kesalahan saat logout.");
+    }
+  }
+
+  // ACTIVE NAVBAR MENU
   const menuClass = (menu) =>
     `cursor-pointer transition-all duration-200 ${
       activeMenu === menu
@@ -44,7 +97,7 @@ export default function Home() {
           <a
             href="#home"
             onClick={() => setActiveMenu("home")}
-            className="flex items-center gap-1"
+            className="flex items-center gap-2.5"
           >
             <img
               src="/logo-n-navy.png"
@@ -88,19 +141,42 @@ export default function Home() {
 
           {/* AUTH BUTTON */}
           <div className="flex items-center gap-6 text-lg font-semibold">
-            <a
-              href="/login"
-              className="text-[#0B1F3A] hover:underline"
-            >
-              Login
-            </a>
 
-            <a
-              href="/register"
-              className="rounded-lg bg-[#0B1F3A] px-6 py-3.5 text-lg text-white hover:bg-white hover:text-[#0B1F3A] hover:outline hover:outline-1 hover:outline-[#0B1F3A]"
-            >
-              Sign up
-            </a>
+            {authLoading ? (
+              <span className="text-[#0B1F3A]">
+                Loading...
+              </span>
+            ) : user ? (
+              <>
+                <span className="text-[#0B1F3A]">
+                  Hi, {user.username}
+                </span>
+
+                <button
+                  onClick={handleLogout}
+                  className="rounded-lg bg-[#0B1F3A] px-6 py-3.5 text-lg text-white transition hover:bg-white hover:text-[#0B1F3A] hover:outline hover:outline-1 hover:outline-[#0B1F3A]"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <a
+                  href="/login"
+                  className="text-[#0B1F3A] hover:underline"
+                >
+                  Login
+                </a>
+
+                <a
+                  href="/register"
+                  className="rounded-lg bg-[#0B1F3A] px-6 py-3.5 text-lg text-white hover:bg-white hover:text-[#0B1F3A] hover:outline hover:outline-1 hover:outline-[#0B1F3A]"
+                >
+                  Sign up
+                </a>
+              </>
+            )}
+
           </div>
 
         </div>
