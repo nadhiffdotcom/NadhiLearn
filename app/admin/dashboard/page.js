@@ -1,4 +1,5 @@
 
+import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import pool from "@/lib/db";
@@ -82,23 +83,69 @@ export default async function AdminDashboard() {
     <main className="min-h-screen bg-[#0B1F3A] text-white">
 
       {/* NAVBAR */}
-      <nav className="bg-white px-6 py-5 text-[#0B1F3A]">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4">
+      <nav className="sticky top-0 z-50 w-full border-b border-[#0B1F3A] bg-white">
+        <div className="relative mx-auto flex min-h-[80px] max-w-7xl items-center justify-between px-6">
 
-          <a href="/" className="text-2xl font-bold">
-            NadhiLearn
-          </a>
+          {/* LOGO KIRI */}
+          <div className="flex shrink-0 items-center">
+            <Link
+              href="/"
+              className="flex items-center gap-2.5"
+            >
+              <img
+                src="/logo-n-navy.png"
+                alt="NadhiLearn Logo"
+                className="h-11 w-11 object-contain"
+              />
 
-          <div className="flex flex-wrap items-center gap-5 font-semibold">
-            <a href="/" className="hover:underline">
-              Beranda
-            </a>
+              <span className="text-3xl font-bold tracking-tight text-[#0B1F3A]">
+                NadhiLearn.
+              </span>
+            </Link>
+          </div>
 
-            <span className="underline">
+          {/* MENU TENGAH */}
+          <div className="absolute left-1/2 hidden -translate-x-1/2 items-center justify-center gap-7 whitespace-nowrap text-base text-[#0B1F3A] md:flex">
+
+            <Link
+              href="/#home"
+              className="font-normal transition-all duration-200 hover:font-bold"
+            >
+              Home
+            </Link>
+
+            <Link
+              href="/#courses"
+              className="font-normal transition-all duration-200 hover:font-bold"
+            >
+              Courses
+            </Link>
+
+            <Link
+              href="/#about"
+              className="font-normal transition-all duration-200 hover:font-bold"
+            >
+              About
+            </Link>
+
+            <Link
+              href="/admin/dashboard"
+              className="font-bold underline underline-offset-8"
+            >
               Admin Dashboard
+            </Link>
+
+          </div>
+
+          {/* LOGIN / LOGOUT KANAN */}
+          <div className="ml-auto flex shrink-0 items-center justify-end gap-5 text-base font-semibold">
+
+            <span className="hidden text-[#0B1F3A] sm:inline">
+              Hi, {admin.username}
             </span>
 
             <LogoutButton />
+
           </div>
 
         </div>

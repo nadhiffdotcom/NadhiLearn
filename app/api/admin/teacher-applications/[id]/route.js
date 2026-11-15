@@ -61,22 +61,22 @@ export async function PATCH(request, { params }) {
 
     // Perbarui status pengajuan
     const result = await pool.query(
-      `UPDATE users
-       SET teacher_status = $1,
-           role = CASE
-             WHEN $1 = 'approved' THEN 'teacher'
-             ELSE 'student'
-           END,
-           approved_at = CASE
-             WHEN $1 = 'approved' THEN NOW()
-             ELSE NULL
-           END,
-           updated_at = NOW()
-       WHERE id = $2
-         AND teacher_status = 'pending'
-       RETURNING id, username, email, role, teacher_status`,
-      [status, userId]
-    );
+  `UPDATE users
+   SET teacher_status = $1::text,
+       role = CASE
+         WHEN $1::text = 'approved' THEN 'teacher'
+         ELSE 'student'
+       END,
+       approved_at = CASE
+         WHEN $1::text = 'approved' THEN NOW()
+         ELSE NULL
+       END,
+       updated_at = NOW()
+   WHERE id = $2
+     AND teacher_status = 'pending'
+   RETURNING id, username, email, role, teacher_status`,
+  [status, userId]
+);
 
     if (!result.rows.length) {
       return NextResponse.json(
