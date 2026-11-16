@@ -4,10 +4,11 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import pool from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
-import LogoutButton from "../../student/dashboard/LogoutButton";
 import TeacherApplicationActions from "./TeacherApplicationActions";
 
-export default async function AdminDashboard() {
+const ITEMS_PER_PAGE = 10;
+
+export default async function AdminDashboard({ searchParams }) {
   // 1. Periksa sesi login
   const cookieStore = await cookies();
   const token = cookieStore.get("nadhi_token")?.value;
@@ -16,7 +17,13 @@ export default async function AdminDashboard() {
     redirect("/login");
   }
 
-  const payload = await verifyToken(token);
+  let payload;
+
+  try {
+    payload = await verifyToken(token);
+  } catch {
+    redirect("/login");
+  }
 
   if (!payload) {
     redirect("/login");
@@ -64,7 +71,32 @@ export default async function AdminDashboard() {
 
   const stats = statsResult.rows[0];
 
-  // 5. Ambil daftar pengajuan Teacher
+  // 5. Ambil nomor halaman
+  const params = await searchParams;
+  const requestedPage = Number(params?.page) || 1;
+
+  // 6. Hitung total pengajuan Teacher
+  const countResult = await pool.query(
+    `SELECT COUNT(*)::int AS total
+     FROM users
+     WHERE teacher_status = 'pending'`
+  );
+
+  const totalApplicants = countResult.rows[0].total;
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(totalApplicants / ITEMS_PER_PAGE)
+  );
+
+  const currentPage = Math.min(
+    Math.max(1, Math.floor(requestedPage)),
+    totalPages
+  );
+
+  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+
+  // 7. Ambil pengajuan sesuai halaman
   const applicantsResult = await pool.query(
     `SELECT
       id,
@@ -74,96 +106,39 @@ export default async function AdminDashboard() {
       created_at
     FROM users
     WHERE teacher_status = 'pending'
-    ORDER BY created_at ASC`
+    ORDER BY created_at ASC
+    LIMIT $1 OFFSET $2`,
+    [ITEMS_PER_PAGE, offset]
   );
 
   const applicants = applicantsResult.rows;
 
+  const startItem =
+    totalApplicants === 0 ? 0 : offset + 1;
+
+  const endItem = Math.min(
+    offset + ITEMS_PER_PAGE,
+    totalApplicants
+  );
+
   return (
-    <main className="min-h-screen bg-[#0B1F3A] text-white">
+    <div className="min-h-screen bg-gray-50 text-[#0B1F3A]">
 
-      {/* NAVBAR */}
-      <nav className="sticky top-0 z-50 w-full border-b border-[#0B1F3A] bg-white">
-        <div className="relative mx-auto flex min-h-[80px] max-w-7xl items-center justify-between px-6">
+<div className="mx-auto max-w-7xl px-6 py-10">
 
-          {/* LOGO KIRI */}
-          <div className="flex shrink-0 items-center">
-            <Link
-              href="/"
-              className="flex items-center gap-2.5"
-            >
-              <img
-                src="/logo-n-navy.png"
-                alt="NadhiLearn Logo"
-                className="h-11 w-11 object-contain"
-              />
-
-              <span className="text-3xl font-bold tracking-tight text-[#0B1F3A]">
-                NadhiLearn.
-              </span>
-            </Link>
-          </div>
-
-          {/* MENU TENGAH */}
-          <div className="absolute left-1/2 hidden -translate-x-1/2 items-center justify-center gap-7 whitespace-nowrap text-base text-[#0B1F3A] md:flex">
-
-            <Link
-              href="/#home"
-              className="font-normal transition-all duration-200 hover:font-bold"
-            >
-              Home
-            </Link>
-
-            <Link
-              href="/#courses"
-              className="font-normal transition-all duration-200 hover:font-bold"
-            >
-              Courses
-            </Link>
-
-            <Link
-              href="/#about"
-              className="font-normal transition-all duration-200 hover:font-bold"
-            >
-              About
-            </Link>
-
-            <Link
-              href="/admin/dashboard"
-              className="font-bold underline underline-offset-8"
-            >
-              Admin Dashboard
-            </Link>
-
-          </div>
-
-          {/* AKUN DAN LOGOUT KANAN */}
-          <div className="ml-auto flex shrink-0 items-center justify-end gap-5 text-base font-semibold">
-
-            <span className="hidden text-[#0B1F3A] sm:inline">
-              Hi, {admin.username}
-            </span>
-
-            <Link
-              href="/account/profile"
-              className="text-[#0B1F3A] transition hover:underline hover:underline-offset-4"
-            >
-              Pengaturan Akun
-            </Link>
-
-            <LogoutButton />
-
-          </div>
-
-        </div>
-      </nav>
-
-      {/* MAIN CONTENT */}
-      <div className="mx-auto max-w-7xl px-6 py-12">
+  {/* TOMBOL HOME */}
+<div className="mb-6 flex justify-end pr-20">
+  <Link
+    href="/"
+    className="rounded-lg bg-[#0B1F3A] px-6 py-3 font-semibold text-white transition hover:bg-[#17385F]"
+  >
+    Home
+  </Link>
+</div>
 
         {/* WELCOME */}
         <section className="mb-10">
-          <p className="mb-2 font-semibold">
+          <p className="mb-2 text-sm font-bold tracking-wider">
             ADMIN DASHBOARD
           </p>
 
@@ -171,7 +146,7 @@ export default async function AdminDashboard() {
             Halo, {admin.username}!
           </h1>
 
-          <p>
+          <p className="text-gray-600">
             Selamat datang di halaman administrasi NadhiLearn.
             Kelola pengguna dan pantau pengajuan Teacher di sini.
           </p>
@@ -180,8 +155,8 @@ export default async function AdminDashboard() {
         {/* STATISTICS */}
         <section className="mb-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
 
-          <div className="rounded-2xl bg-white p-6 text-[#0B1F3A]">
-            <p className="mb-3 font-semibold">
+          <div className="rounded-2xl border border-gray-200 bg-white p-6">
+            <p className="mb-3 font-semibold text-gray-600">
               Total Pengguna
             </p>
             <h2 className="text-4xl font-bold">
@@ -189,8 +164,8 @@ export default async function AdminDashboard() {
             </h2>
           </div>
 
-          <div className="rounded-2xl bg-white p-6 text-[#0B1F3A]">
-            <p className="mb-3 font-semibold">
+          <div className="rounded-2xl border border-gray-200 bg-white p-6">
+            <p className="mb-3 font-semibold text-gray-600">
               Total Student
             </p>
             <h2 className="text-4xl font-bold">
@@ -198,8 +173,8 @@ export default async function AdminDashboard() {
             </h2>
           </div>
 
-          <div className="rounded-2xl bg-white p-6 text-[#0B1F3A]">
-            <p className="mb-3 font-semibold">
+          <div className="rounded-2xl border border-gray-200 bg-white p-6">
+            <p className="mb-3 font-semibold text-gray-600">
               Total Teacher
             </p>
             <h2 className="text-4xl font-bold">
@@ -207,8 +182,8 @@ export default async function AdminDashboard() {
             </h2>
           </div>
 
-          <div className="rounded-2xl bg-white p-6 text-[#0B1F3A]">
-            <p className="mb-3 font-semibold">
+          <div className="rounded-2xl border border-gray-200 bg-white p-6">
+            <p className="mb-3 font-semibold text-gray-600">
               Pengajuan Pending
             </p>
             <h2 className="text-4xl font-bold">
@@ -220,109 +195,141 @@ export default async function AdminDashboard() {
 
         {/* TEACHER APPLICATIONS */}
         <section>
-
           <div className="mb-6">
             <h2 className="text-2xl font-bold">
               Pengajuan Teacher
             </h2>
 
-            <p className="mt-2">
+            <p className="mt-2 text-gray-600">
               Periksa calon Teacher yang meminta bergabung
               dengan NadhiLearn.
             </p>
           </div>
 
           {applicants.length === 0 ? (
-
-            <div className="rounded-2xl border-2 border-white p-10 text-center">
+            <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center">
               <h3 className="mb-3 text-xl font-bold">
                 Tidak Ada Pengajuan
               </h3>
 
-              <p>
+              <p className="text-gray-600">
                 Saat ini belum ada calon Teacher yang
                 menunggu persetujuan.
               </p>
             </div>
-
           ) : (
+            <>
+              <div className="grid gap-6 md:grid-cols-2">
+                {applicants.map((applicant) => (
+                  <article
+                    key={applicant.id}
+                    className="rounded-2xl border border-gray-200 bg-white p-6"
+                  >
+                    <div className="mb-5 flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-xl font-bold">
+                          {applicant.username}
+                        </h3>
 
-            <div className="grid gap-6 md:grid-cols-2">
+                        <p className="mt-1 break-all text-sm text-gray-600">
+                          {applicant.email}
+                        </p>
+                      </div>
 
-              {applicants.map((applicant) => (
+                      <span className="rounded-full border border-[#0B1F3A] px-3 py-1 text-xs font-bold">
+                        PENDING
+                      </span>
+                    </div>
 
-                <article
-                  key={applicant.id}
-                  className="rounded-2xl bg-white p-6 text-[#0B1F3A]"
-                >
+                    <div className="mb-5">
+                      <h4 className="mb-2 font-bold">
+                        Latar Belakang
+                      </h4>
 
-                  <div className="mb-5 flex items-start justify-between gap-3">
-
-                    <div>
-                      <h3 className="text-xl font-bold">
-                        {applicant.username}
-                      </h3>
-
-                      <p className="mt-1 break-all text-sm">
-                        {applicant.email}
+                      <p className="whitespace-pre-wrap text-gray-700">
+                        {applicant.teacher_background ||
+                          "Belum mengisi latar belakang."}
                       </p>
                     </div>
 
-                    <span className="rounded-full border border-[#0B1F3A] px-3 py-1 text-xs font-bold">
-                      PENDING
-                    </span>
+                    <div className="border-t border-gray-200 pt-4 text-sm">
+                      <p className="text-gray-600">
+                        Tanggal Pendaftaran:
+                      </p>
 
-                  </div>
+                      <p className="mt-1 font-semibold">
+                        {new Date(
+                          applicant.created_at
+                        ).toLocaleDateString("id-ID", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </p>
+                    </div>
 
-                  <div className="mb-5">
-                    <h4 className="mb-2 font-bold">
-                      Latar Belakang
-                    </h4>
+                    <TeacherApplicationActions
+                      userId={applicant.id}
+                    />
+                  </article>
+                ))}
+              </div>
 
-                    <p className="whitespace-pre-wrap">
-                      {applicant.teacher_background ||
-                        "Belum mengisi latar belakang."}
-                    </p>
-                  </div>
+              {/* PAGINATION */}
+              <div className="mt-8 flex flex-col items-center justify-between gap-4 rounded-xl border border-gray-200 bg-white p-5 sm:flex-row">
+                <p className="text-sm text-gray-600">
+                  Menampilkan{" "}
+                  <span className="font-semibold text-[#0B1F3A]">
+                    {startItem}-{endItem}
+                  </span>{" "}
+                  dari{" "}
+                  <span className="font-semibold text-[#0B1F3A]">
+                    {totalApplicants}
+                  </span>{" "}
+                  pengajuan
+                </p>
 
-                  <div className="border-t border-[#0B1F3A] pt-4 text-sm">
-                    <p>
-                      Tanggal Pendaftaran:
-                    </p>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`/admin/dashboard?page=${currentPage - 1}`}
+                    aria-disabled={currentPage <= 1}
+                    className={`rounded-lg border px-4 py-2 text-sm font-semibold ${
+                      currentPage <= 1
+                        ? "pointer-events-none border-gray-200 text-gray-400"
+                        : "border-[#0B1F3A] text-[#0B1F3A] hover:bg-gray-100"
+                    }`}
+                  >
+                    Sebelumnya
+                  </Link>
 
-                    <p className="mt-1 font-semibold">
-                      {new Date(
-                        applicant.created_at
-                      ).toLocaleDateString("id-ID", {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      })}
-                    </p>
-                  </div>
+                  <span className="px-3 text-sm font-semibold">
+                    {currentPage} / {totalPages}
+                  </span>
 
-                  {/* TOMBOL SETUJUI DAN TOLAK */}
-                  <TeacherApplicationActions userId={applicant.id} />
-
-                </article>
-
-              ))}
-
-            </div>
-
+                  <Link
+                    href={`/admin/dashboard?page=${currentPage + 1}`}
+                    aria-disabled={currentPage >= totalPages}
+                    className={`rounded-lg border px-4 py-2 text-sm font-semibold ${
+                      currentPage >= totalPages
+                        ? "pointer-events-none border-gray-200 text-gray-400"
+                        : "border-[#0B1F3A] text-[#0B1F3A] hover:bg-gray-100"
+                    }`}
+                  >
+                    Berikutnya
+                  </Link>
+                </div>
+              </div>
+            </>
           )}
-
         </section>
 
       </div>
 
-      {/* FOOTER */}
-      <footer className="mt-16 bg-white px-6 py-6 text-center text-[#0B1F3A]">
+      <footer className="mt-10 border-t border-gray-200 bg-white px-6 py-6 text-center text-[#0B1F3A]">
         <p className="font-semibold">
           © 2026 NadhiLearn. All Rights Reserved.
         </p>
       </footer>
-
-    </main>
+    </div>
   );
 }
