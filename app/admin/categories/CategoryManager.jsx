@@ -2,7 +2,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 
 export default function CategoryManager({ initialCategories }) {
   const [categories, setCategories] = useState(initialCategories);
@@ -11,6 +10,28 @@ export default function CategoryManager({ initialCategories }) {
   const [editingId, setEditingId] = useState(null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // PAGINATION
+  const itemsPerPage = 10;
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(categories.length / itemsPerPage)
+  );
+
+  const safePage = Math.min(currentPage, totalPages);
+
+  const startIndex = (safePage - 1) * itemsPerPage;
+  const endIndex = Math.min(
+    startIndex + itemsPerPage,
+    categories.length
+  );
+
+  const displayedCategories = categories.slice(
+    startIndex,
+    endIndex
+  );
 
   function resetForm() {
     setName("");
@@ -125,7 +146,6 @@ export default function CategoryManager({ initialCategories }) {
 
   return (
     <main className="min-h-screen bg-white text-[#0B1F3A]">
-      
       <section className="mx-auto max-w-7xl px-6 py-10">
         <div className="mb-8">
           <h1 className="text-3xl font-bold">
@@ -213,56 +233,97 @@ export default function CategoryManager({ initialCategories }) {
               Belum ada kategori.
             </p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-4">ID</th>
-                    <th className="px-6 py-4">Nama</th>
-                    <th className="px-6 py-4">Deskripsi</th>
-                    <th className="px-6 py-4">Aksi</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {categories.map((category) => (
-                    <tr
-                      key={category.id}
-                      className="border-t border-gray-200"
-                    >
-                      <td className="px-6 py-4">
-                        {category.id}
-                      </td>
-                      <td className="px-6 py-4 font-semibold">
-                        {category.name}
-                      </td>
-                      <td className="px-6 py-4 text-gray-600">
-                        {category.description || "-"}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex gap-3">
-                          <button
-                            onClick={() => handleEdit(category)}
-                            disabled={loading}
-                            className="font-semibold text-[#0B1F3A] hover:underline disabled:opacity-50"
-                          >
-                            Edit
-                          </button>
-
-                          <button
-                            onClick={() => handleDelete(category.id)}
-                            disabled={loading}
-                            className="font-semibold text-red-600 hover:underline disabled:opacity-50"
-                          >
-                            Hapus
-                          </button>
-                        </div>
-                      </td>
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-4">ID</th>
+                      <th className="px-6 py-4">Nama</th>
+                      <th className="px-6 py-4">Deskripsi</th>
+                      <th className="px-6 py-4">Aksi</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+
+                  <tbody>
+                    {displayedCategories.map((category, index) => (                      <tr
+                        key={category.id}
+                        className="border-t border-gray-200"
+                      >
+                        <td className="px-6 py-4">
+                        {startIndex + index + 1}
+                        </td>   
+                        <td className="px-6 py-4 font-semibold">
+                          {category.name}
+                        </td>
+                        <td className="px-6 py-4 text-gray-600">
+                          {category.description || "-"}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex gap-3">
+                            <button
+                              onClick={() => handleEdit(category)}
+                              disabled={loading}
+                              className="font-semibold text-[#0B1F3A] hover:underline disabled:opacity-50"
+                            >
+                              Edit
+                            </button>
+
+                            <button
+                              onClick={() => handleDelete(category.id)}
+                              disabled={loading}
+                              className="font-semibold text-red-600 hover:underline disabled:opacity-50"
+                            >
+                              Hapus
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* PAGINATION */}
+              <div className="flex flex-col gap-4 border-t border-gray-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-gray-600">
+                  Menampilkan {startIndex + 1}–{endIndex} dari{" "}
+                  {categories.length} kategori
+                </p>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCurrentPage((previous) =>
+                        Math.max(previous - 1, 1)
+                      )
+                    }
+                    disabled={safePage === 1}
+                    className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Sebelumnya
+                  </button>
+
+                  <span className="px-2 text-sm font-semibold">
+                    Halaman {safePage} dari {totalPages}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCurrentPage((previous) =>
+                        Math.min(previous + 1, totalPages)
+                      )
+                    }
+                    disabled={safePage === totalPages}
+                    className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Selanjutnya
+                  </button>
+                </div>
+              </div>
+            </>
           )}
         </div>
       </section>
