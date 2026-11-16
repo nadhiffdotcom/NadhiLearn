@@ -39,21 +39,23 @@ export default function CourseManager() {
 
   const [message, setMessage] = useState("");
 
+  
   // =====================================
   // FETCH COURSES
   // =====================================
 
-  async function fetchCourses() {
+  async function fetchCourses(signal) {
     setLoading(true);
 
     try {
       const params = new URLSearchParams({
         page: String(page),
-        search,
+        search: search.trim(),
       });
 
       const response = await fetch(
-        `/api/courses?${params.toString()}`
+        `/api/courses?${params.toString()}`,
+        { signal }
       );
 
       const data = await response.json();
@@ -69,14 +71,31 @@ export default function CourseManager() {
       setTeachers(data.teachers || []);
       setPagination(data.pagination);
     } catch (error) {
-      setMessage(error.message);
+      // Request yang dibatalkan tidak dianggap sebagai error.
+      if (error.name === "AbortError") return;
+
+      setMessage(
+        error.message || "Gagal menghubungi server."
+      );
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
   }
 
   useEffect(() => {
-    fetchCourses();
+    const controller = new AbortController();
+
+    // Tunggu 350 ms setelah pengguna berhenti mengetik.
+    const timeoutId = setTimeout(() => {
+      fetchCourses(controller.signal);
+    }, 350);
+
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, [page, search]);
 
   // =====================================
