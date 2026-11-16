@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -15,6 +14,11 @@ const menuItems = [
     label: "My Courses",
     href: "/teacher/courses",
     icon: "▤",
+  },
+  {
+    label: "Content Management",
+    href: "/teacher/contents",
+    icon: "▣",
   },
   {
     label: "Settings",
