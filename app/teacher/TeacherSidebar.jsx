@@ -10,6 +10,7 @@ const menuItems = [
   { label: "Dashboard", href: "/teacher/dashboard", icon: "▦" },
   { label: "My Courses", href: "/teacher/courses", icon: "▤" },
   { label: "Content Management", href: "/teacher/contents", icon: "▣" },
+  { label: "Student Progress", href: "/teacher/student-progress", icon: "◷" },
   { label: "Settings", href: "/account/profile", icon: "⚙" },
 ];
 
