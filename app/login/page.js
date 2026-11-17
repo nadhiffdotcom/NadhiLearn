@@ -23,10 +23,7 @@ export default function LoginPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
@@ -36,7 +33,6 @@ export default function LoginPage() {
         return;
       }
 
-      // Arahkan pengguna berdasarkan role
       if (data.user.role === "admin") {
         router.push("/admin/dashboard");
       } else if (
@@ -45,7 +41,6 @@ export default function LoginPage() {
       ) {
         router.push("/teacher/dashboard");
       } else {
-        // Student dan pengajuan Teacher yang masih pending
         router.push("/student/dashboard");
       }
 
@@ -58,19 +53,19 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0B1F3A] flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md rounded-2xl bg-white p-8 text-[#0B1F3A]">
-        <h1 className="mb-2 text-center text-3xl font-bold">
+    <main className="flex min-h-screen min-h-[100svh] items-center justify-center bg-[#0B1F3A] px-4 py-6 sm:px-6 sm:py-10">
+      <div className="w-full max-w-md rounded-2xl bg-white p-5 text-[#0B1F3A] shadow-xl sm:p-8">
+        <h1 className="mb-2 text-center text-2xl font-bold sm:text-3xl">
           Login NadhiLearn
         </h1>
 
-        <p className="mb-8 text-center">
+        <p className="mb-6 text-center text-sm leading-relaxed sm:mb-8 sm:text-base">
           Selamat datang kembali! Silakan login ke akunmu.
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
           <div>
-            <label className="mb-2 block font-semibold">
+            <label className="mb-2 block text-sm font-semibold sm:text-base">
               Email
             </label>
 
@@ -79,13 +74,14 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full rounded-lg border border-[#0B1F3A] px-4 py-3 outline-none"
+              autoComplete="email"
+              className="w-full min-w-0 rounded-lg border border-[#0B1F3A] px-3 py-3 text-base outline-none transition focus:ring-2 focus:ring-[#0B1F3A]/20 sm:px-4"
               placeholder="Masukkan email"
             />
           </div>
 
           <div>
-            <label className="mb-2 block font-semibold">
+            <label className="mb-2 block text-sm font-semibold sm:text-base">
               Password
             </label>
 
@@ -94,13 +90,14 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full rounded-lg border border-[#0B1F3A] px-4 py-3 outline-none"
+              autoComplete="current-password"
+              className="w-full min-w-0 rounded-lg border border-[#0B1F3A] px-3 py-3 text-base outline-none transition focus:ring-2 focus:ring-[#0B1F3A]/20 sm:px-4"
               placeholder="Masukkan password"
             />
           </div>
 
           {message && (
-            <p className="rounded-lg border border-[#0B1F3A] p-3 text-sm">
+            <p className="break-words rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700">
               {message}
             </p>
           )}
@@ -108,20 +105,20 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-[#0B1F3A] py-3 font-bold text-white disabled:opacity-60"
+            className="w-full rounded-lg bg-[#0B1F3A] px-4 py-3 font-bold text-white transition hover:bg-[#17385F] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading ? "Memproses..." : "Login"}
           </button>
         </form>
 
-        <p className="mt-6 text-center">
+        <p className="mt-6 text-center text-sm leading-relaxed sm:text-base">
           Belum punya akun?{" "}
           <a href="/register" className="font-bold underline">
             Daftar
           </a>
         </p>
 
-        <p className="mt-4 text-center">
+        <p className="mt-4 text-center text-sm sm:text-base">
           <a href="/" className="font-semibold underline">
             Kembali ke Beranda
           </a>

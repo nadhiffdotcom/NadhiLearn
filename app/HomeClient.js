@@ -109,81 +109,81 @@ const menuClass = (menu) =>
   return (
     <main className="min-h-screen bg-[#0B1F3A] text-white">
 
+     
       {/* NAVBAR */}
       <nav
         id="main-navbar"
         className="sticky top-0 z-50 w-full border-b border-[#0B1F3A] bg-white"
       >
-        <div className="relative mx-auto flex min-h-[80px] max-w-7xl items-center justify-between px-6">
+        <div className="mx-auto flex min-h-[72px] w-full max-w-7xl items-center justify-between gap-3 px-3 sm:min-h-[80px] sm:gap-5 sm:px-6">
 
           {/* LOGO KIRI */}
-          <div className="flex shrink-0 items-center">
+          <div className="min-w-0 flex-1 md:flex-none">
             <a
               href="/#home"
-              className="flex items-center gap-2.5"
+              className="flex min-w-0 items-center gap-2"
             >
               <img
                 src="/logo-n-navy.png"
                 alt="NadhiLearn Logo"
-                className="h-11 w-11 object-contain"
+                className="h-8 w-8 shrink-0 object-contain sm:h-10 sm:w-10"
               />
 
-              <span className="text-3xl font-bold tracking-tight text-[#0B1F3A]">
+              <span className="truncate text-lg font-bold tracking-tight text-[#0B1F3A] sm:text-2xl lg:text-3xl">
                 NadhiLearn.
               </span>
             </a>
           </div>
 
           {/* MENU TENGAH */}
-          <div className="absolute left-1/2 hidden -translate-x-1/2 items-center justify-center gap-7 whitespace-nowrap text-base text-[#0B1F3A] md:flex">
+          <div className="hidden flex-none items-center justify-center gap-5 whitespace-nowrap text-sm text-[#0B1F3A] lg:flex xl:gap-7 xl:text-base">
 
-                        <a
-                href="/#home"
-                onClick={() => setActiveMenu("home")}
-                className={menuClass("home")}
-                >
-                Home
-                </a>
+            <a
+              href="/#home"
+              onClick={() => setActiveMenu("home")}
+              className={menuClass("home")}
+            >
+              Home
+            </a>
 
-                <a
-                href="/#courses"
-                onClick={() => setActiveMenu("courses")}
-                className={menuClass("courses")}
-                >
-                Courses
-                </a>
+            <a
+              href="/#courses"
+              onClick={() => setActiveMenu("courses")}
+              className={menuClass("courses")}
+            >
+              Courses
+            </a>
 
-                <a
-                href="/#about"
-                onClick={() => setActiveMenu("about")}
-                className={menuClass("about")}
-                >
-                About
-                </a>
+            <a
+              href="/#about"
+              onClick={() => setActiveMenu("about")}
+              className={menuClass("about")}
+            >
+              About
+            </a>
 
             {userDashboard && (
               <a
                 href={userDashboard.href}
-                className="cursor-pointer font-normal transition-all duration-200 hover:font-bold"
+                className="cursor-pointer whitespace-nowrap font-normal transition-all duration-200 hover:font-bold"
               >
                 {userDashboard.label}
               </a>
             )}
-
           </div>
 
           {/* LOGIN / LOGOUT KANAN */}
-          <div className="ml-auto flex shrink-0 items-center justify-end gap-5 text-base font-semibold">
+          <div className="flex shrink-0 items-center justify-end gap-2 text-sm font-semibold sm:gap-4 sm:text-base">
 
             {user ? (
               <>
-                <span className="hidden text-[#0B1F3A] sm:inline">
+                <span className="hidden max-w-32 truncate text-[#0B1F3A] xl:inline">
                   Hi, {user.username}
                 </span>
 
                 <button
                   onClick={handleLogout}
-                  className="rounded-lg bg-[#0B1F3A] px-5 py-3 text-base text-white transition hover:bg-white hover:text-[#0B1F3A] hover:outline hover:outline-1 hover:outline-[#0B1F3A]"
+                  className="whitespace-nowrap rounded-lg bg-[#0B1F3A] px-3 py-2 text-sm text-white transition hover:bg-white hover:text-[#0B1F3A] hover:outline hover:outline-1 hover:outline-[#0B1F3A] sm:px-5 sm:py-3 sm:text-base"
                 >
                   Logout
                 </button>
@@ -192,23 +192,23 @@ const menuClass = (menu) =>
               <>
                 <a
                   href="/login"
-                  className="text-[#0B1F3A] transition hover:underline"
+                  className="whitespace-nowrap text-[#0B1F3A] transition hover:underline"
                 >
                   Login
                 </a>
 
                 <a
                   href="/register"
-                  className="rounded-lg bg-[#0B1F3A] px-5 py-3 text-base text-white transition hover:bg-white hover:text-[#0B1F3A] hover:outline hover:outline-1 hover:outline-[#0B1F3A]"
+                  className="whitespace-nowrap rounded-lg bg-[#0B1F3A] px-3 py-2 text-sm text-white transition hover:bg-white hover:text-[#0B1F3A] hover:outline hover:outline-1 hover:outline-[#0B1F3A] sm:px-5 sm:py-3 sm:text-base"
                 >
                   Sign up
                 </a>
               </>
             )}
-
           </div>
         </div>
       </nav>
+
 
       {/* HERO SECTION */}
       <section

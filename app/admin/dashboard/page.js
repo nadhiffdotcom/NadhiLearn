@@ -11,8 +11,7 @@ const ITEMS_PER_PAGE = 10;
 export default async function AdminDashboard({ searchParams }) {
   // 1. Periksa sesi login
   const cookieStore = await cookies();
-  const token = cookieStore.get("nadhi_token")?.value;
-
+const token = cookieStore.get("nadhi_admin_token")?.value;
   if (!token) {
     redirect("/login");
   }
@@ -122,11 +121,11 @@ export default async function AdminDashboard({ searchParams }) {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 text-[#0B1F3A]">
+    <div className="min-h-screen bg-white text-[#0B1F3A]">
 
-<div className="mx-auto max-w-7xl px-6 py-10">
+      <div className="mx-auto max-w-7xl px-6 py-10">
 
-  {/* TOMBOL HOME */}
+  {/* Top Bar */}
 <div className="mb-6 flex justify-end pr-20">
   <Link
     href="/"
@@ -138,7 +137,7 @@ export default async function AdminDashboard({ searchParams }) {
 
         {/* WELCOME */}
         <section className="mb-10">
-          <p className="mb-2 text-sm font-bold tracking-wider">
+          <p className="mb-2 font-semibold">
             ADMIN DASHBOARD
           </p>
 
@@ -146,7 +145,7 @@ export default async function AdminDashboard({ searchParams }) {
             Halo, {admin.username}!
           </h1>
 
-          <p className="text-gray-600">
+          <p>
             Selamat datang di halaman administrasi NadhiLearn.
             Kelola pengguna dan pantau pengajuan Teacher di sini.
           </p>
@@ -155,8 +154,8 @@ export default async function AdminDashboard({ searchParams }) {
         {/* STATISTICS */}
         <section className="mb-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-6">
-            <p className="mb-3 font-semibold text-gray-600">
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow duration-200 hover:shadow-md">
+            <p className="mb-3 font-semibold">
               Total Pengguna
             </p>
             <h2 className="text-4xl font-bold">
@@ -164,8 +163,8 @@ export default async function AdminDashboard({ searchParams }) {
             </h2>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-6">
-            <p className="mb-3 font-semibold text-gray-600">
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow duration-200 hover:shadow-md">
+            <p className="mb-3 font-semibold">
               Total Student
             </p>
             <h2 className="text-4xl font-bold">
@@ -173,7 +172,7 @@ export default async function AdminDashboard({ searchParams }) {
             </h2>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-6">
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow duration-200 hover:shadow-md">
             <p className="mb-3 font-semibold text-gray-600">
               Total Teacher
             </p>
@@ -182,7 +181,7 @@ export default async function AdminDashboard({ searchParams }) {
             </h2>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-6">
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow duration-200 hover:shadow-md">
             <p className="mb-3 font-semibold text-gray-600">
               Pengajuan Pending
             </p>

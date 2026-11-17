@@ -22,7 +22,7 @@ export async function POST(request) {
       );
     }
 
-    // Cari pengguna berdasarkan email
+    // Cari pengguna
     const result = await pool.query(
       `SELECT
         id,
@@ -49,7 +49,7 @@ export async function POST(request) {
 
     const user = result.rows[0];
 
-    // Bandingkan password dengan hash di database
+    // Verifikasi password
     const passwordMatch = await bcrypt.compare(
       password,
       user.password
@@ -65,13 +65,42 @@ export async function POST(request) {
       );
     }
 
-    // Buat token JWT
+    // Tentukan cookie berdasarkan role
+    let cookieName;
+
+    if (user.role === "admin") {
+      cookieName = "nadhi_admin_token";
+    } else if (user.role === "teacher") {
+      if (user.teacher_status !== "approved") {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Akun Teacher belum disetujui.",
+          },
+          { status: 403 }
+        );
+      }
+
+      cookieName = "nadhi_teacher_token";
+    } else if (user.role === "student") {
+      cookieName = "nadhi_student_token";
+    } else {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Role akun tidak valid.",
+        },
+        { status: 403 }
+      );
+    }
+
+    // Buat JWT
     const token = await createToken(user);
 
-    // Simpan token dalam cookie
+    // Simpan cookie sesuai role
     const cookieStore = await cookies();
 
-    cookieStore.set("nadhi_token", token, {
+    cookieStore.set(cookieName, token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",

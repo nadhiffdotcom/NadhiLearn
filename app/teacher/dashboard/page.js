@@ -1,19 +1,16 @@
 
 import Link from "next/link";
-
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import pool from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
-import LogoutButton from "../../student/dashboard/LogoutButton";
 
 export default async function TeacherDashboard() {
-  // 1. Periksa sesi login
+  // 1. PERIKSA SESI LOGIN
   const cookieStore = await cookies();
-  const token = cookieStore.get("nadhi_token")?.value;
-
+const token = cookieStore.get("nadhi_teacher_token")?.value;
   if (!token) {
-    redirect("/login");
+    redirect("/login"); 
   }
 
   const payload = await verifyToken(token);
@@ -22,7 +19,7 @@ export default async function TeacherDashboard() {
     redirect("/login");
   }
 
-  // 2. Ambil data terbaru pengguna dari database
+  // 2. AMBIL DATA PENGGUNA
   const userResult = await pool.query(
     `SELECT id, username, email, role, teacher_status
      FROM users
@@ -37,7 +34,7 @@ export default async function TeacherDashboard() {
 
   const user = userResult.rows[0];
 
-  // 3. Periksa hak akses Teacher
+  // 3. PERIKSA HAK AKSES TEACHER
   if (user.role === "admin") {
     redirect("/admin/dashboard");
   }
@@ -53,7 +50,7 @@ export default async function TeacherDashboard() {
     redirect("/student/dashboard");
   }
 
-  // 4. Ambil kursus yang diajar Teacher
+  // 4. AMBIL KURSUS YANG DIAJAR TEACHER
   const coursesResult = await pool.query(
     `SELECT
       c.id,
@@ -82,7 +79,7 @@ export default async function TeacherDashboard() {
 
   const courses = coursesResult.rows;
 
-  // 5. Hitung statistik dashboard
+  // 5. HITUNG STATISTIK DASHBOARD
   const totalCourses = courses.length;
 
   const totalStudentsResult = await pool.query(
@@ -125,10 +122,21 @@ export default async function TeacherDashboard() {
       : 0;
 
   return (
-    <main className="min-h-screen bg-[#0B1F3A] text-white">
+    <main className="min-h-screen bg-white text-[#0B1F3A]">
 
-      {/* CONTENT */}
-      <div className="mx-auto max-w-7xl px-6 py-12">
+      {/* KONTEN DASHBOARD */}
+      <div className="mx-auto max-w-7xl px-6 py-10">
+
+            {/* Top Bar */}
+    <div className="mb-6 flex justify-end pr-20">
+      <Link
+        href="/"
+        className="rounded-lg bg-[#0B1F3A] px-6 py-3 font-semibold text-white transition hover:bg-[#17385F]"
+      >
+        Home
+      </Link>
+    </div>
+
 
         {/* WELCOME */}
         <section className="mb-10">
@@ -149,8 +157,9 @@ export default async function TeacherDashboard() {
         {/* STATISTICS */}
         <section className="mb-12 grid gap-5 md:grid-cols-3">
 
-          <div className="rounded-2xl bg-white p-6 text-[#0B1F3A]">
-            <p className="mb-3 font-semibold">
+          {/* TOTAL COURSES */}
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 text-[#0B1F3A] shadow-sm transition-shadow duration-200 hover:shadow-md">
+            <p className="mb-3 font-semibold text-gray-600">
               Kursus yang Diajar
             </p>
 
@@ -159,8 +168,9 @@ export default async function TeacherDashboard() {
             </h2>
           </div>
 
-          <div className="rounded-2xl bg-white p-6 text-[#0B1F3A]">
-            <p className="mb-3 font-semibold">
+          {/* TOTAL STUDENTS */}
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 text-[#0B1F3A] shadow-sm transition-shadow duration-200 hover:shadow-md">
+            <p className="mb-3 font-semibold text-gray-600">
               Total Student
             </p>
 
@@ -169,8 +179,9 @@ export default async function TeacherDashboard() {
             </h2>
           </div>
 
-          <div className="rounded-2xl bg-white p-6 text-[#0B1F3A]">
-            <p className="mb-3 font-semibold">
+          {/* TOTAL MATERIALS */}
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 text-[#0B1F3A] shadow-sm transition-shadow duration-200 hover:shadow-md">
+            <p className="mb-3 font-semibold text-gray-600">
               Total Materi
             </p>
 
@@ -183,31 +194,37 @@ export default async function TeacherDashboard() {
 
         {/* COURSE LIST */}
         <section>
+
           <div className="mb-6">
             <h2 className="text-2xl font-bold">
               Kursus yang Saya Ajar
             </h2>
 
-            <p className="mt-2">
+            <p className="mt-2 text-gray-600">
               Pantau kursus dan perkembangan Student di setiap kelas.
             </p>
           </div>
 
           {courses.length === 0 ? (
-            <div className="rounded-2xl border-2 border-white p-10 text-center">
+
+            /* EMPTY STATE */
+            <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center shadow-sm">
               <h3 className="mb-3 text-xl font-bold">
                 Belum Ada Kursus
               </h3>
 
-              <p>
+              <p className="text-gray-600">
                 Kamu belum memiliki kursus yang diajar.
                 Kursus yang ditugaskan kepadamu akan muncul di sini.
               </p>
             </div>
+
           ) : (
             <>
-              <div className="mb-6 rounded-2xl bg-white p-6 text-[#0B1F3A]">
-                <p className="mb-2 font-semibold">
+
+              {/* AVERAGE STUDENT PROGRESS */}
+              <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-6 text-[#0B1F3A] shadow-sm transition-shadow duration-200 hover:shadow-md">
+                <p className="mb-2 font-semibold text-gray-600">
                   Rata-rata Progress Student
                 </p>
 
@@ -215,9 +232,9 @@ export default async function TeacherDashboard() {
                   {averageProgress}%
                 </h3>
 
-                <div className="mt-4 h-3 overflow-hidden rounded-full border border-[#0B1F3A]">
+                <div className="mt-4 h-3 overflow-hidden rounded-full bg-gray-100">
                   <div
-                    className="h-full bg-[#0B1F3A]"
+                    className="h-full rounded-full bg-[#0B1F3A] transition-all duration-300"
                     style={{
                       width: `${averageProgress}%`,
                     }}
@@ -225,7 +242,9 @@ export default async function TeacherDashboard() {
                 </div>
               </div>
 
+              {/* COURSE CARDS */}
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+
                 {courses.map((course) => {
                   const studentCount =
                     Number(course.total_students);
@@ -249,78 +268,99 @@ export default async function TeacherDashboard() {
                   return (
                     <article
                       key={course.id}
-                      className="rounded-2xl bg-white p-6 text-[#0B1F3A]"
+                      className="rounded-2xl border border-gray-200 bg-white p-6 text-[#0B1F3A] shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
                     >
+
                       <h3 className="mb-3 text-xl font-bold">
                         {course.title}
                       </h3>
 
-                      <p className="mb-5 line-clamp-3">
+                      <p className="mb-5 line-clamp-3 text-gray-600">
                         {course.description}
                       </p>
 
-                      <div className="mb-4 space-y-2 text-sm">
+                      {/* COURSE INFORMATION */}
+                      <div className="mb-4 space-y-2 text-sm text-gray-700">
+
                         <p>
                           Jumlah Student:{" "}
-                          <strong>{studentCount}</strong>
+                          <strong className="text-[#0B1F3A]">
+                            {studentCount}
+                          </strong>
                         </p>
 
                         <p>
                           Jumlah Materi:{" "}
-                          <strong>{materialCount}</strong>
+                          <strong className="text-[#0B1F3A]">
+                            {materialCount}
+                          </strong>
                         </p>
 
                         <p>
                           Materi Diselesaikan:{" "}
-                          <strong>{completedPairs}</strong>
+                          <strong className="text-[#0B1F3A]">
+                            {completedPairs}
+                          </strong>
                         </p>
+
                       </div>
 
+                      {/* COURSE PROGRESS */}
                       <div className="mb-3 flex justify-between text-sm font-semibold">
                         <span>Progress Student</span>
                         <span>{courseProgress}%</span>
                       </div>
 
-                      <div className="mb-5 h-3 overflow-hidden rounded-full border border-[#0B1F3A]">
+                      <div className="mb-5 h-3 overflow-hidden rounded-full bg-gray-100">
                         <div
-                          className="h-full bg-[#0B1F3A]"
+                          className="h-full rounded-full bg-[#0B1F3A] transition-all duration-300"
                           style={{
                             width: `${courseProgress}%`,
                           }}
                         />
                       </div>
 
-                      <div className="border-t border-[#0B1F3A] pt-4 text-sm">
+                      {/* COURSE DATES */}
+                      <div className="border-t border-gray-200 pt-4 text-sm text-gray-600">
+
                         <p>
                           Mulai:{" "}
-                          {course.start_date
-                            ? new Date(
-                                course.start_date
-                              ).toLocaleDateString("id-ID")
-                            : "Belum ditentukan"}
+                          <span className="font-semibold text-[#0B1F3A]">
+                            {course.start_date
+                              ? new Date(
+                                  course.start_date
+                                ).toLocaleDateString("id-ID")
+                              : "Belum ditentukan"}
+                          </span>
                         </p>
 
                         <p className="mt-2">
                           Selesai:{" "}
-                          {course.end_date
-                            ? new Date(
-                                course.end_date
-                              ).toLocaleDateString("id-ID")
-                            : "Belum ditentukan"}
+                          <span className="font-semibold text-[#0B1F3A]">
+                            {course.end_date
+                              ? new Date(
+                                  course.end_date
+                                ).toLocaleDateString("id-ID")
+                              : "Belum ditentukan"}
+                          </span>
                         </p>
+
                       </div>
+
                     </article>
                   );
                 })}
+
               </div>
             </>
           )}
+
         </section>
 
       </div>
 
       {/* FOOTER */}
-      <footer className="mt-16 bg-white px-6 py-6 text-center text-[#0B1F3A]">
+      <footer className="mt-16 border-t border-gray-200 bg-white px-6 py-6 text-center text-[#0B1F3A]">
         <p className="font-semibold">
           © 2026 NadhiLearn. All Rights Reserved.
         </p>

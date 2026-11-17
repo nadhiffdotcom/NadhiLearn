@@ -40,9 +40,11 @@ export default function LogoutButton() {
 
   return (
     <button
+      type="button"
       onClick={handleLogout}
       disabled={loading}
-      className="rounded-lg bg-[#0B1F3A] px-4 py-2 font-bold text-white disabled:opacity-60"
+      style={{ fontWeight: 600 }}
+      className="rounded-lg bg-[#0B1F3A] px-5 py-2 text-base text-white transition-colors duration-200 hover:bg-white hover:text-[#0B1F3A] hover:outline hover:outline-1 hover:outline-[#0B1F3A] disabled:opacity-60"
     >
       {loading ? "Memproses..." : "Logout"}
     </button>

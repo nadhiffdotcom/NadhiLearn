@@ -4,13 +4,11 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import pool from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
-import LogoutButton from "./LogoutButton";
 
 export default async function StudentDashboard() {
   // PERIKSA SESI LOGIN
   const cookieStore = await cookies();
-  const token = cookieStore.get("nadhi_token")?.value;
-
+const token = cookieStore.get("nadhi_student_token")?.value;
   if (!token) {
     redirect("/login");
   }
@@ -100,79 +98,20 @@ export default async function StudentDashboard() {
       : 0;
 
   return (
-    <main className="min-h-screen bg-[#0B1F3A] text-white">
-
-      {/* NAVBAR */}
-      <nav className="sticky top-0 z-50 w-full border-b border-[#0B1F3A] bg-white">
-        <div className="relative mx-auto flex min-h-[80px] max-w-7xl items-center justify-between px-6">
-
-          {/* LOGO KIRI */}
-          <div className="flex shrink-0 items-center">
-            <Link href="/" className="flex items-center gap-2.5">
-              <img
-                src="/logo-n-navy.png"
-                alt="NadhiLearn Logo"
-                className="h-11 w-11 object-contain"
-              />
-
-              <span className="text-3xl font-bold tracking-tight text-[#0B1F3A]">
-                NadhiLearn.
-              </span>
-            </Link>
-          </div>
-
-          {/* MENU TENGAH */}
-          <div className="absolute left-1/2 hidden -translate-x-1/2 items-center justify-center gap-7 whitespace-nowrap text-base text-[#0B1F3A] md:flex">
-
-            <Link
-              href="/#home"
-              className="font-normal transition-all duration-200 hover:font-bold hover:underline hover:underline-offset-8"
-            >
-              Home
-            </Link>
-
-            <Link
-              href="/#courses"
-              className="font-normal transition-all duration-200 hover:font-bold hover:underline hover:underline-offset-8"
-            >
-              Courses
-            </Link>
-
-            <Link
-              href="/#about"
-              className="font-normal transition-all duration-200 hover:font-bold hover:underline hover:underline-offset-8"
-            >
-              About
-            </Link>
-
-            <Link
-              href="/student/dashboard"
-              className="font-bold underline underline-offset-8"
-            >
-              Student Dashboard
-            </Link>
-
-          </div>
-
-          {/* AKUN DAN LOGOUT KANAN */}
-          <div className="ml-auto flex shrink-0 items-center justify-end gap-5">
-
-            <Link
-              href="/account/profile"
-              className="font-semibold text-[#0B1F3A] transition hover:underline hover:underline-offset-4"
-            >
-              Pengaturan Akun
-            </Link>
-
-            <LogoutButton />
-
-          </div>
-
-        </div>
-      </nav>
+    <main className="min-h-screen bg-white text-[#0B1F3A]">
 
       {/* KONTEN DASHBOARD */}
-      <div className="mx-auto max-w-7xl px-6 py-12">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
+
+        {/* Top Bar */}
+        <div className="mb-6 flex justify-end pr-20">
+        <Link
+          href="/"
+          className="rounded-lg bg-[#0B1F3A] px-6 py-3 font-semibold text-white transition hover:bg-[#17385F]"
+        >
+          Home
+        </Link>
+      </div>
 
         {/* WELCOME */}
         <section className="mb-10">
@@ -191,9 +130,13 @@ export default async function StudentDashboard() {
         </section>
 
         {/* STATISTICS */}
-        <section className="mb-12 grid gap-5 md:grid-cols-3">
+        <section
+        id="progress"
+        className="mb-12 grid gap-5 md:grid-cols-3"
+      >
 
-          <div className="rounded-2xl bg-white p-6 text-[#0B1F3A]">
+          {/* KURSUS DIIKUTI */}
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 text-[#0B1F3A] shadow-sm transition-shadow duration-200 hover:shadow-md">
             <p className="mb-3 font-semibold">
               Kursus Diikuti
             </p>
@@ -203,7 +146,8 @@ export default async function StudentDashboard() {
             </h2>
           </div>
 
-          <div className="rounded-2xl bg-white p-6 text-[#0B1F3A]">
+          {/* MATERI DISELESAIKAN */}
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 text-[#0B1F3A] shadow-sm transition-shadow duration-200 hover:shadow-md">
             <p className="mb-3 font-semibold">
               Materi Diselesaikan
             </p>
@@ -217,7 +161,8 @@ export default async function StudentDashboard() {
             </p>
           </div>
 
-          <div className="rounded-2xl bg-white p-6 text-[#0B1F3A]">
+          {/* PROGRESS BELAJAR */}
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 text-[#0B1F3A] shadow-sm transition-shadow duration-200 hover:shadow-md">
             <p className="mb-3 font-semibold">
               Progress Belajar
             </p>
@@ -228,7 +173,7 @@ export default async function StudentDashboard() {
 
             <div className="mt-4 h-3 overflow-hidden rounded-full border border-[#0B1F3A]">
               <div
-                className="h-full bg-[#0B1F3A]"
+                className="h-full bg-[#0B1F3A] transition-all duration-300"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -237,7 +182,7 @@ export default async function StudentDashboard() {
         </section>
 
         {/* MY COURSES */}
-        <section>
+        <section id="my-courses">
 
           <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div>
@@ -252,14 +197,16 @@ export default async function StudentDashboard() {
 
             <a
               href="/#courses"
-              className="rounded-lg border-2 border-white px-5 py-3 font-bold transition hover:bg-white hover:text-[#0B1F3A]"
+              className="rounded-lg border-2 border-[#0B1F3A] px-5 py-3 font-bold transition-colors hover:bg-[#0B1F3A] hover:text-white"
             >
               Cari Kursus
             </a>
           </div>
 
           {courses.length === 0 ? (
-            <div className="rounded-2xl border-2 border-white p-10 text-center">
+
+            /* BELUM ADA KURSUS */
+            <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center shadow-sm">
               <h3 className="mb-3 text-xl font-bold">
                 Belum Ada Kursus
               </h3>
@@ -271,13 +218,17 @@ export default async function StudentDashboard() {
 
               <a
                 href="/#courses"
-                className="inline-block rounded-lg bg-white px-6 py-3 font-bold text-[#0B1F3A]"
+                className="inline-block rounded-lg bg-[#0B1F3A] px-6 py-3 font-bold text-white transition-colors hover:bg-white hover:text-[#0B1F3A] hover:outline hover:outline-1 hover:outline-[#0B1F3A]"
               >
                 Jelajahi Kursus
               </a>
             </div>
+
           ) : (
+
+            /* DAFTAR KURSUS */
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+
               {courses.map((course) => {
                 const courseProgress =
                   course.total_materials > 0
@@ -290,7 +241,7 @@ export default async function StudentDashboard() {
                 return (
                   <article
                     key={course.id}
-                    className="rounded-2xl bg-white p-6 text-[#0B1F3A]"
+                    className="rounded-2xl border border-gray-200 bg-white p-6 text-[#0B1F3A] shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
                   >
                     <h3 className="mb-3 text-xl font-bold">
                       {course.title}
@@ -307,7 +258,7 @@ export default async function StudentDashboard() {
 
                     <div className="mb-5 h-3 overflow-hidden rounded-full border border-[#0B1F3A]">
                       <div
-                        className="h-full bg-[#0B1F3A]"
+                        className="h-full bg-[#0B1F3A] transition-all duration-300"
                         style={{
                           width: `${courseProgress}%`,
                         }}
@@ -330,13 +281,14 @@ export default async function StudentDashboard() {
 
                     <a
                       href="/#courses"
-                      className="block rounded-lg bg-[#0B1F3A] px-5 py-3 text-center font-bold text-white transition hover:bg-white hover:text-[#0B1F3A] hover:outline hover:outline-2 hover:outline-[#0B1F3A]"
+                      className="block rounded-lg bg-[#0B1F3A] px-5 py-3 text-center font-bold text-white transition-colors hover:bg-white hover:text-[#0B1F3A] hover:outline hover:outline-2 hover:outline-[#0B1F3A]"
                     >
                       Lihat Kursus
                     </a>
                   </article>
                 );
               })}
+
             </div>
           )}
 
@@ -345,7 +297,7 @@ export default async function StudentDashboard() {
       </div>
 
       {/* FOOTER */}
-      <footer className="mt-16 bg-white px-6 py-6 text-center text-[#0B1F3A]">
+      <footer className="mt-16 border-t border-gray-200 bg-white px-6 py-6 text-center text-[#0B1F3A]">
         <p className="font-semibold">
           © 2026 NadhiLearn. All Rights Reserved.
         </p>
