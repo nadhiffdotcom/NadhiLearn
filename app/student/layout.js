@@ -1,4 +1,3 @@
-
 import StudentSidebar from "./StudentSidebar";
 
 export default function StudentLayout({ children }) {
