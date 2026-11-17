@@ -1,45 +1,19 @@
-
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import pool from "@/lib/db";
-import { verifyToken } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/lib/auth-server";
 
 // =====================================
 // AUTHENTICATION & ROLE CHECK
 // =====================================
 
-async function getCurrentTeacher() {
-  const cookieStore = await cookies();
+async function getCurrentTeacher(request) {
+  const auth = await getAuthenticatedUser(request, ["teacher"]);
 
-  // Gunakan cookie khusus Teacher
-  const token = cookieStore.get("nadhi_teacher_token")?.value;
-
-  if (!token) return null;
-
-  const payload = await verifyToken(token);
-
-  if (!payload?.id) return null;
-
-  const result = await pool.query(
-    `SELECT id, username, email, role, teacher_status
-     FROM users
-     WHERE id = $1
-     LIMIT 1`,
-    [payload.id]
-  );
-
-  if (result.rows.length === 0) return null;
-
-  const user = result.rows[0];
-
-  if (
-    user.role !== "teacher" ||
-    user.teacher_status !== "approved"
-  ) {
+  if (!auth.user) {
     return null;
   }
 
-  return user;
+  return auth.user;
 }
 
 // =====================================
@@ -92,7 +66,10 @@ async function isCourseOwnedByTeacher(courseId, teacherId) {
 
 export async function GET(request) {
   try {
-    const user = await getCurrentTeacher();
+const user = await getCurrentTeacher(request);
+
+console.log("DEBUG TEACHER ID:", user?.id);
+console.log("DEBUG TEACHER USERNAME:", user?.username);
 
     if (!user) {
       return NextResponse.json(
@@ -221,7 +198,7 @@ export async function POST(request) {
   let client;
 
   try {
-    const user = await getCurrentTeacher();
+const user = await getCurrentTeacher(request);
 
     if (!user) {
       return NextResponse.json(
@@ -275,6 +252,9 @@ export async function POST(request) {
         [73142, courseId]
       );
 
+console.log("DEBUG COURSE ID:", courseId);
+console.log("DEBUG REQUEST TEACHER ID:", user.id);
+
       const ownedResult = await client.query(
         `SELECT id
          FROM courses
@@ -283,6 +263,16 @@ export async function POST(request) {
          LIMIT 1`,
         [courseId, user.id]
       );
+
+        console.log("CONTENT DEBUG:", {
+    userId: user.id,
+    username: user.username,
+    role: user.role,
+    courseId: courseId,
+    owned: ownedResult.rows.length > 0,
+  });
+
+
 
       if (ownedResult.rows.length === 0) {
         await client.query("ROLLBACK");
@@ -367,7 +357,7 @@ export async function POST(request) {
 
 export async function PUT(request) {
   try {
-    const user = await getCurrentTeacher();
+const user = await getCurrentTeacher(request);
 
     if (!user) {
       return NextResponse.json(
@@ -497,7 +487,7 @@ export async function PUT(request) {
 
 export async function DELETE(request) {
   try {
-    const user = await getCurrentTeacher();
+const user = await getCurrentTeacher(request);
 
     if (!user) {
       return NextResponse.json(
