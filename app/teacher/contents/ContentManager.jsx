@@ -1,7 +1,7 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
+import { authFetch } from "@/lib/auth-client";
 
 const initialForm = {
   course_id: "",
@@ -51,7 +51,7 @@ export default function ContentManager() {
         params.set("course_id", selectedCourse);
       }
 
-      const response = await fetch(
+         const response = await authFetch(
         `/api/contents?${params.toString()}`,
         { signal }
       );
@@ -185,7 +185,7 @@ export default function ContentManager() {
         throw new Error("Silakan pilih kursus terlebih dahulu.");
       }
 
-      const response = await fetch("/api/contents", {
+      const response = await authFetch("/api/contents", {
         method: editingId ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
@@ -229,7 +229,7 @@ export default function ContentManager() {
     if (!confirmed) return;
 
     try {
-      const response = await fetch(
+      const response = await authFetch(
         `/api/contents?id=${id}`,
         {
           method: "DELETE",

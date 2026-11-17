@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { authFetch } from "@/lib/auth-client";
 
 export default function CourseManager() {
   const [courses, setCourses] = useState([]);
@@ -47,7 +48,7 @@ export default function CourseManager() {
         search,
       });
 
-      const response = await fetch(`/api/courses?${params}`);
+      const response = await authFetch(`/api/courses?${params}`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -141,7 +142,7 @@ export default function CourseManager() {
         end_date: form.end_date || null,
       };
 
-      const response = await fetch("/api/courses", {
+      const response = await authFetch("/api/courses", {
         method: editingId ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
@@ -191,7 +192,7 @@ export default function CourseManager() {
     if (!confirmed) return;
 
     try {
-      const response = await fetch(
+      const response = await authFetch(
         `/api/courses?id=${id}`,
         {
           method: "DELETE",
@@ -276,6 +277,7 @@ export default function CourseManager() {
                 <tr>
                   <th className="px-5 py-4">No.</th>
                   <th className="px-5 py-4">Nama Kursus</th>
+                  <th className="px-5 py-4">Thumbnail</th>
                   <th className="px-5 py-4">Kategori</th>
                   <th className="px-5 py-4">Tanggal Mulai</th>
                   <th className="px-5 py-4">Tanggal Selesai</th>
@@ -288,7 +290,7 @@ export default function CourseManager() {
                 {loading ? (
                   <tr>
                     <td
-                      colSpan="6"
+                      colSpan="7"
                       className="px-5 py-10 text-center text-gray-500"
                     >
                       Memuat data kursus...
@@ -297,7 +299,7 @@ export default function CourseManager() {
                 ) : courses.length === 0 ? (
                   <tr>
                     <td
-                      colSpan="6"
+                      colSpan="7"
                       className="px-5 py-10 text-center text-gray-500"
                     >
                       Belum ada kursus.
@@ -322,6 +324,21 @@ export default function CourseManager() {
                         <p className="mt-1 max-w-xs truncate text-xs text-gray-500">
                           {course.description || "-"}
                         </p>
+                      </td>
+
+                      {/* THUMBNAIL */}
+                      <td className="px-5 py-4">
+                        {course.thumbnail ? (
+                          <img
+                            src={course.thumbnail}
+                            alt={course.title}
+                            className="h-14 w-24 rounded-md object-cover"
+                          />
+                        ) : (
+                          <span className="text-xs text-gray-400">
+                            Tidak ada gambar
+                          </span>
+                        )}
                       </td>
 
                       <td className="px-5 py-4 text-gray-600">
