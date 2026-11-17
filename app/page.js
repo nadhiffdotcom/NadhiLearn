@@ -9,12 +9,27 @@ export default async function Home() {
 
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get("nadhi_token")?.value;
+
+    // Ambil cookie sesuai role
+    const adminToken = cookieStore.get("nadhi_admin_token")?.value;
+    const teacherToken = cookieStore.get("nadhi_teacher_token")?.value;
+    const studentToken = cookieStore.get("nadhi_student_token")?.value;
+
+    // Tentukan token yang digunakan
+    let token = null;
+
+    if (adminToken) {
+      token = adminToken;
+    } else if (teacherToken) {
+      token = teacherToken;
+    } else if (studentToken) {
+      token = studentToken;
+    }
 
     if (token) {
       const decoded = await verifyToken(token);
 
-      if (decoded?.id) {
+      if (decoded?.id && decoded?.role) {
         const result = await pool.query(
           `SELECT id, username, email, role
            FROM users
@@ -23,7 +38,10 @@ export default async function Home() {
           [decoded.id]
         );
 
-        if (result.rows.length > 0) {
+        if (
+          result.rows.length > 0 &&
+          result.rows[0].role === decoded.role
+        ) {
           initialUser = result.rows[0];
         }
       }

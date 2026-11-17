@@ -7,8 +7,7 @@ import { verifyToken } from "@/lib/auth";
 // Memastikan hanya Admin yang dapat mengelola kategori
 async function checkAdmin() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("nadhi_token")?.value;
-
+  const token = cookieStore.get("nadhi_admin_token")?.value;
   if (!token) {
     return null;
   }

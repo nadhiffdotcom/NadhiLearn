@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { authFetch } from "@/lib/auth-client";
 
 const courses = [
   {
@@ -24,12 +25,54 @@ const courses = [
   },
 ];
 
-export default function HomeClient({ initialUser }) {
-  const [user, setUser] = useState(initialUser);
-
-  // MENENTUKAN MENU AKTIF BERDASARKAN URL
+export default function HomeClient() {
+  const [user, setUser] = useState(null);
+  const [checkingUser, setCheckingUser] = useState(true);
   const [activeMenu, setActiveMenu] = useState(null);
 
+  // Periksa akun berdasarkan token pada tab ini.
+  useEffect(() => {
+    let active = true;
+
+    async function loadUser() {
+      const token = sessionStorage.getItem("nadhi_token");
+
+      if (!token) {
+        if (active) {
+          setUser(null);
+          setCheckingUser(false);
+        }
+        return;
+      }
+
+      try {
+        const response = await authFetch("/api/auth/me");
+        const data = await response.json();
+
+        if (!active) return;
+
+        if (response.ok && data.success) {
+          setUser(data.user);
+        } else {
+          sessionStorage.removeItem("nadhi_token");
+          setUser(null);
+        }
+      } catch (error) {
+        console.error("Gagal memeriksa sesi:", error);
+        if (active) setUser(null);
+      } finally {
+        if (active) setCheckingUser(false);
+      }
+    }
+
+    loadUser();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Menentukan menu aktif berdasarkan URL.
   useEffect(() => {
     function updateActiveMenu() {
       const hash = window.location.hash;
@@ -44,41 +87,27 @@ export default function HomeClient({ initialUser }) {
     }
 
     updateActiveMenu();
-
     window.addEventListener("hashchange", updateActiveMenu);
 
     return () => {
       window.removeEventListener("hashchange", updateActiveMenu);
     };
   }, []);
-  // PROSES LOGOUT
-  async function handleLogout() {
+
+  // Logout hanya dari tab yang sedang digunakan.
+  function handleLogout() {
     const confirmed = window.confirm(
-      "Apakah kamu yakin ingin logout?"
+      "Apakah kamu yakin ingin logout dari tab ini?"
     );
 
     if (!confirmed) return;
 
-    try {
-      const response = await fetch("/api/auth/logout", {
-        method: "POST",
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        setUser(null);
-        window.location.href = "/";
-      } else {
-        alert("Logout gagal. Silakan coba lagi.");
-      }
-    } catch (error) {
-      console.error("Logout error:", error);
-      alert("Terjadi kesalahan saat logout.");
-    }
+    sessionStorage.removeItem("nadhi_token");
+    setUser(null);
+    window.location.href = "/";
   }
 
-  // DASHBOARD BERDASARKAN ROLE
+  // Dashboard berdasarkan role.
   const dashboard = {
     student: {
       label: "Student Dashboard",
@@ -94,35 +123,26 @@ export default function HomeClient({ initialUser }) {
     },
   };
 
-  const userDashboard = user
-    ? dashboard[user.role]
-    : null;
+  const userDashboard = user ? dashboard[user.role] : null;
 
-const menuClass = (menu) =>
-  `cursor-pointer transition-all duration-200 ${
-    activeMenu === menu
-      ? "font-bold underline underline-offset-8"
-      : "font-normal hover:font-bold"
-  }`;
-
+  const menuClass = (menu) =>
+    `cursor-pointer transition-all duration-200 ${
+      activeMenu === menu
+        ? "font-bold underline underline-offset-8"
+        : "font-normal hover:font-bold"
+    }`;
 
   return (
     <main className="min-h-screen bg-[#0B1F3A] text-white">
-
-     
       {/* NAVBAR */}
       <nav
         id="main-navbar"
         className="sticky top-0 z-50 w-full border-b border-[#0B1F3A] bg-white"
       >
         <div className="mx-auto flex min-h-[72px] w-full max-w-7xl items-center justify-between gap-3 px-3 sm:min-h-[80px] sm:gap-5 sm:px-6">
-
           {/* LOGO KIRI */}
           <div className="min-w-0 flex-1 md:flex-none">
-            <a
-              href="/#home"
-              className="flex min-w-0 items-center gap-2"
-            >
+            <a href="/#home" className="flex min-w-0 items-center gap-2">
               <img
                 src="/logo-n-navy.png"
                 alt="NadhiLearn Logo"
@@ -137,7 +157,6 @@ const menuClass = (menu) =>
 
           {/* MENU TENGAH */}
           <div className="hidden flex-none items-center justify-center gap-5 whitespace-nowrap text-sm text-[#0B1F3A] lg:flex xl:gap-7 xl:text-base">
-
             <a
               href="/#home"
               onClick={() => setActiveMenu("home")}
@@ -174,8 +193,11 @@ const menuClass = (menu) =>
 
           {/* LOGIN / LOGOUT KANAN */}
           <div className="flex shrink-0 items-center justify-end gap-2 text-sm font-semibold sm:gap-4 sm:text-base">
-
-            {user ? (
+            {checkingUser ? (
+              <span className="text-sm text-[#0B1F3A]">
+                Memeriksa sesi...
+              </span>
+            ) : user ? (
               <>
                 <span className="hidden max-w-32 truncate text-[#0B1F3A] xl:inline">
                   Hi, {user.username}
@@ -209,7 +231,6 @@ const menuClass = (menu) =>
         </div>
       </nav>
 
-
       {/* HERO SECTION */}
       <section
         id="home"
@@ -220,7 +241,6 @@ const menuClass = (menu) =>
         </p>
 
         <div className="grid items-center gap-12 lg:grid-cols-[1.4fr_1fr]">
-
           <div>
             <h1 className="max-w-3xl text-5xl font-bold leading-tight md:text-6xl">
               Learn something.
@@ -257,12 +277,10 @@ const menuClass = (menu) =>
               className="h-auto w-[340px] max-w-full object-contain md:w-[400px] lg:w-[460px]"
             />
           </div>
-
         </div>
 
         {/* STATISTICS */}
         <div className="mt-24 grid grid-cols-1 gap-10 border-t border-white/30 pt-10 sm:grid-cols-3">
-
           <div>
             <h2 className="text-4xl font-bold">100+</h2>
             <p className="mt-2">Learning Materials</p>
@@ -277,7 +295,6 @@ const menuClass = (menu) =>
             <h2 className="text-4xl font-bold">500+</h2>
             <p className="mt-2">Active Students</p>
           </div>
-
         </div>
       </section>
 
@@ -287,7 +304,6 @@ const menuClass = (menu) =>
         className="scroll-mt-28 bg-white px-6 py-24 text-[#0B1F3A]"
       >
         <div className="mx-auto max-w-6xl">
-
           <div className="mb-12">
             <p className="text-sm font-bold uppercase tracking-[0.2em]">
               Explore Courses
@@ -343,7 +359,6 @@ const menuClass = (menu) =>
               View All Courses
             </a>
           </div>
-
         </div>
       </section>
 
@@ -353,7 +368,6 @@ const menuClass = (menu) =>
         className="scroll-mt-28 bg-[#0B1F3A] px-6 py-28 text-white"
       >
         <div className="mx-auto max-w-6xl">
-
           <p className="text-sm font-bold uppercase tracking-[0.2em]">
             About NadhiLearn
           </p>
@@ -367,28 +381,21 @@ const menuClass = (menu) =>
             mempertemukan siswa dan pengajar dalam satu ruang belajar.
             Temukan materi, ikuti kelas, dan pantau perkembangan belajarmu.
           </p>
-
         </div>
       </section>
 
       {/* FOOTER */}
       <footer className="bg-white px-6 py-12 text-[#0B1F3A]">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 md:flex-row">
-
-          <a
-            href="/#home"
-            className="text-2xl font-bold"
-          >
+          <a href="/#home" className="text-2xl font-bold">
             NadhiLearn.
           </a>
 
           <p className="text-sm">
             © 2026 NadhiLearn. All rights reserved.
           </p>
-
         </div>
       </footer>
-
     </main>
   );
 }

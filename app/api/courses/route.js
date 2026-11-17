@@ -10,41 +10,81 @@ import { verifyToken } from "@/lib/auth";
 
 async function getCurrentUser() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("nadhi_token")?.value;
 
-  if (!token) return null;
+  const adminToken =
+    cookieStore.get("nadhi_admin_token")?.value;
 
-  const payload = await verifyToken(token);
+  const teacherToken =
+    cookieStore.get("nadhi_teacher_token")?.value;
 
-  if (!payload) return null;
+  // Periksa token Admin dan Teacher satu per satu.
+  const candidates = [
+    {
+      token: adminToken,
+      expectedRole: "admin",
+    },
+    {
+      token: teacherToken,
+      expectedRole: "teacher",
+    },
+  ];
 
-  const result = await pool.query(
-    `SELECT id, username, email, role, teacher_status
-     FROM users
-     WHERE id = $1
-     LIMIT 1`,
-    [payload.id]
-  );
+  for (const candidate of candidates) {
+    if (!candidate.token) continue;
 
-  if (result.rows.length === 0) return null;
+    try {
+      const payload = await verifyToken(candidate.token);
 
-  const user = result.rows[0];
+      if (!payload?.id) continue;
 
-  if (
-    user.role !== "admin" &&
-    !(
-      user.role === "teacher" &&
-      user.teacher_status === "approved"
-    )
-  ) {
-    return null;
+      const result = await pool.query(
+        `SELECT
+          id,
+          username,
+          email,
+          role,
+          teacher_status
+         FROM users
+         WHERE id = $1
+         LIMIT 1`,
+        [payload.id]
+      );
+
+      if (result.rows.length === 0) continue;
+
+      const user = result.rows[0];
+
+      // Role harus sesuai dengan jenis cookie.
+      if (user.role !== candidate.expectedRole) {
+        continue;
+      }
+
+      // Teacher harus sudah disetujui.
+      if (
+        user.role === "teacher" &&
+        user.teacher_status !== "approved"
+      ) {
+        continue;
+      }
+
+      return user;
+    } catch (error) {
+      console.error(
+        `AUTH TOKEN ERROR (${candidate.expectedRole}):`,
+        error.message
+      );
+    }
   }
 
-  return user;
+  return null;
 }
 
+// =====================================
+// HELPER FUNCTIONS
+// =====================================
+
 function normalizeDate(value) {
-  return value ? value : null;
+  return value || null;
 }
 
 function validateCourseDates(startDate, endDate) {
@@ -53,6 +93,15 @@ function validateCourseDates(startDate, endDate) {
   }
 
   return true;
+}
+
+function authError() {
+  return NextResponse.json(
+    {
+      message: "Akses ditolak. Silakan login kembali.",
+    },
+    { status: 401 }
+  );
 }
 
 // =====================================
@@ -64,10 +113,7 @@ export async function GET(request) {
     const user = await getCurrentUser();
 
     if (!user) {
-      return NextResponse.json(
-        { message: "Akses ditolak. Silakan login kembali." },
-        { status: 401 }
-      );
+      return authError();
     }
 
     const { searchParams } = new URL(request.url);
@@ -78,17 +124,21 @@ export async function GET(request) {
     );
 
     const search = searchParams.get("search") || "";
+
     const limit = 10;
     const offset = (page - 1) * limit;
 
     const values = [];
     let whereClause = "";
 
+    // Teacher hanya melihat kursus miliknya.
     if (user.role === "teacher") {
       values.push(user.id);
+
       whereClause = `WHERE c.teacher_id = $${values.length}`;
     }
 
+    // Pencarian kursus.
     if (search.trim()) {
       values.push(`%${search.trim()}%`);
 
@@ -106,6 +156,7 @@ export async function GET(request) {
         : `WHERE ${searchCondition}`;
     }
 
+    // Menghitung total kursus.
     const countResult = await pool.query(
       `SELECT COUNT(*)::int AS total
        FROM courses c
@@ -117,6 +168,7 @@ export async function GET(request) {
 
     const total = countResult.rows[0].total;
 
+    // Mengambil data kursus dengan pagination.
     const coursesResult = await pool.query(
       `SELECT
         c.id,
@@ -142,6 +194,7 @@ export async function GET(request) {
       [...values, limit, offset]
     );
 
+    // Mengambil kategori.
     const categoriesResult = await pool.query(
       `SELECT id, name
        FROM categories
@@ -150,6 +203,7 @@ export async function GET(request) {
 
     let teachers = [];
 
+    // Admin dapat memilih Teacher.
     if (user.role === "admin") {
       const teachersResult = await pool.query(
         `SELECT id, username, email
@@ -166,11 +220,13 @@ export async function GET(request) {
       courses: coursesResult.rows,
       categories: categoriesResult.rows,
       teachers,
+
       currentUser: {
         id: user.id,
         username: user.username,
         role: user.role,
       },
+
       pagination: {
         page,
         limit,
@@ -182,7 +238,13 @@ export async function GET(request) {
     console.error("GET COURSES ERROR:", error);
 
     return NextResponse.json(
-      { message: "Gagal mengambil data kursus." },
+      {
+        message: "Gagal mengambil data kursus.",
+        error:
+          process.env.NODE_ENV === "development"
+            ? error.message
+            : undefined,
+      },
       { status: 500 }
     );
   }
@@ -197,10 +259,7 @@ export async function POST(request) {
     const user = await getCurrentUser();
 
     if (!user) {
-      return NextResponse.json(
-        { message: "Akses ditolak." },
-        { status: 401 }
-      );
+      return authError();
     }
 
     const body = await request.json();
@@ -221,14 +280,20 @@ export async function POST(request) {
       !category_id
     ) {
       return NextResponse.json(
-        { message: "Judul, deskripsi, dan kategori wajib diisi." },
+        {
+          message:
+            "Judul, deskripsi, dan kategori wajib diisi.",
+        },
         { status: 400 }
       );
     }
 
     const categoryId = Number(category_id);
 
-    if (!Number.isInteger(categoryId) || categoryId <= 0) {
+    if (
+      !Number.isInteger(categoryId) ||
+      categoryId <= 0
+    ) {
       return NextResponse.json(
         { message: "Kategori tidak valid." },
         { status: 400 }
@@ -240,7 +305,10 @@ export async function POST(request) {
 
     if (!validateCourseDates(startDate, endDate)) {
       return NextResponse.json(
-        { message: "Tanggal selesai tidak boleh sebelum tanggal mulai." },
+        {
+          message:
+            "Tanggal selesai tidak boleh sebelum tanggal mulai.",
+        },
         { status: 400 }
       );
     }
@@ -263,6 +331,7 @@ export async function POST(request) {
       assignedTeacherId = user.id;
     }
 
+    // Pastikan Teacher valid dan sudah disetujui.
     const teacherResult = await pool.query(
       `SELECT id
        FROM users
@@ -275,11 +344,15 @@ export async function POST(request) {
 
     if (teacherResult.rows.length === 0) {
       return NextResponse.json(
-        { message: "Pengajar tidak valid atau belum disetujui." },
+        {
+          message:
+            "Pengajar tidak valid atau belum disetujui.",
+        },
         { status: 400 }
       );
     }
 
+    // Membuat kursus.
     const result = await pool.query(
       `INSERT INTO courses (
         title,
@@ -329,10 +402,7 @@ export async function PUT(request) {
     const user = await getCurrentUser();
 
     if (!user) {
-      return NextResponse.json(
-        { message: "Akses ditolak." },
-        { status: 401 }
-      );
+      return authError();
     }
 
     const body = await request.json();
@@ -360,7 +430,10 @@ export async function PUT(request) {
       categoryId <= 0
     ) {
       return NextResponse.json(
-        { message: "Data kursus tidak lengkap atau tidak valid." },
+        {
+          message:
+            "Data kursus tidak lengkap atau tidak valid.",
+        },
         { status: 400 }
       );
     }
@@ -370,7 +443,10 @@ export async function PUT(request) {
 
     if (!validateCourseDates(startDate, endDate)) {
       return NextResponse.json(
-        { message: "Tanggal selesai tidak boleh sebelum tanggal mulai." },
+        {
+          message:
+            "Tanggal selesai tidak boleh sebelum tanggal mulai.",
+        },
         { status: 400 }
       );
     }
@@ -392,18 +468,23 @@ export async function PUT(request) {
 
     const course = existingCourse.rows[0];
 
+    // Teacher hanya dapat mengedit kursus sendiri.
     if (
       user.role === "teacher" &&
       String(course.teacher_id) !== String(user.id)
     ) {
       return NextResponse.json(
-        { message: "Kamu hanya dapat mengedit kursus milik sendiri." },
+        {
+          message:
+            "Kamu hanya dapat mengedit kursus milik sendiri.",
+        },
         { status: 403 }
       );
     }
 
     let assignedTeacherId = course.teacher_id;
 
+    // Admin dapat mengganti Teacher.
     if (user.role === "admin") {
       assignedTeacherId = Number(teacher_id);
 
@@ -483,16 +564,17 @@ export async function DELETE(request) {
     const user = await getCurrentUser();
 
     if (!user) {
-      return NextResponse.json(
-        { message: "Akses ditolak." },
-        { status: 401 }
-      );
+      return authError();
     }
 
     const { searchParams } = new URL(request.url);
+
     const courseId = Number(searchParams.get("id"));
 
-    if (!Number.isInteger(courseId) || courseId <= 0) {
+    if (
+      !Number.isInteger(courseId) ||
+      courseId <= 0
+    ) {
       return NextResponse.json(
         { message: "ID kursus tidak valid." },
         { status: 400 }
@@ -516,12 +598,16 @@ export async function DELETE(request) {
 
     const course = existingCourse.rows[0];
 
+    // Teacher hanya dapat menghapus kursus sendiri.
     if (
       user.role === "teacher" &&
       String(course.teacher_id) !== String(user.id)
     ) {
       return NextResponse.json(
-        { message: "Kamu hanya dapat menghapus kursus milik sendiri." },
+        {
+          message:
+            "Kamu hanya dapat menghapus kursus milik sendiri.",
+        },
         { status: 403 }
       );
     }

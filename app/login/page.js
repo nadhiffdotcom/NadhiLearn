@@ -33,6 +33,15 @@ export default function LoginPage() {
         return;
       }
 
+      // Simpan token hanya pada tab yang sedang login.
+      if (!data.token) {
+        setMessage("Token login tidak diterima dari server.");
+        return;
+      }
+
+      sessionStorage.setItem("nadhi_token", data.token);
+
+      // Arahkan pengguna sesuai role.
       if (data.user.role === "admin") {
         router.push("/admin/dashboard");
       } else if (
@@ -40,12 +49,14 @@ export default function LoginPage() {
         data.user.teacherStatus === "approved"
       ) {
         router.push("/teacher/dashboard");
-      } else {
+      } else if (data.user.role === "student") {
         router.push("/student/dashboard");
+      } else {
+        sessionStorage.removeItem("nadhi_token");
+        setMessage("Role akun tidak valid.");
       }
-
-      router.refresh();
     } catch (error) {
+      console.error("Login error:", error);
       setMessage("Terjadi kesalahan koneksi ke server.");
     } finally {
       setLoading(false);

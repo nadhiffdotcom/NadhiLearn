@@ -7,22 +7,34 @@ import CategoryManager from "./CategoryManager";
 
 export default async function CategoriesPage() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("nadhi_token")?.value;
+
+  // Gunakan cookie khusus Admin
+  const token = cookieStore.get("nadhi_admin_token")?.value;
 
   if (!token) {
     redirect("/login");
   }
 
-  let decoded;
+  const decoded = await verifyToken(token);
 
-  try {
-    decoded = await verifyToken(token);
-  } catch {
+  if (!decoded?.id || decoded.role !== "admin") {
     redirect("/login");
   }
 
-  if (decoded.role !== "admin") {
-    redirect("/");
+  // Pastikan akun masih terdaftar dan berstatus Admin
+  const userResult = await pool.query(
+    `SELECT id, role
+     FROM users
+     WHERE id = $1
+     LIMIT 1`,
+    [decoded.id]
+  );
+
+  if (
+    userResult.rows.length === 0 ||
+    userResult.rows[0].role !== "admin"
+  ) {
+    redirect("/login");
   }
 
   const result = await pool.query(

@@ -2,12 +2,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 export default function CourseManager() {
   const [courses, setCourses] = useState([]);
   const [categories, setCategories] = useState([]);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+
   const [pagination, setPagination] = useState({
     page: 1,
     totalPages: 1,
@@ -32,6 +34,9 @@ export default function CourseManager() {
 
   const [form, setForm] = useState(emptyForm);
 
+  // ========================================
+  // LOAD COURSES
+  // ========================================
   async function loadCourses() {
     try {
       setLoading(true);
@@ -46,11 +51,14 @@ export default function CourseManager() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Gagal mengambil data kursus.");
+        throw new Error(
+          data.message || "Gagal mengambil data kursus."
+        );
       }
 
       setCourses(data.courses || []);
       setCategories(data.categories || []);
+
       setPagination(
         data.pagination || {
           page: 1,
@@ -69,12 +77,18 @@ export default function CourseManager() {
     loadCourses();
   }, [page, search]);
 
+  // ========================================
+  // OPEN ADD FORM
+  // ========================================
   function openAddForm() {
     setEditingId(null);
     setForm(emptyForm);
     setShowForm(true);
   }
 
+  // ========================================
+  // OPEN EDIT FORM
+  // ========================================
   function openEditForm(course) {
     setEditingId(course.id);
 
@@ -96,6 +110,9 @@ export default function CourseManager() {
     setShowForm(true);
   }
 
+  // ========================================
+  // HANDLE FORM CHANGE
+  // ========================================
   function handleChange(e) {
     const { name, value } = e.target;
 
@@ -105,6 +122,9 @@ export default function CourseManager() {
     }));
   }
 
+  // ========================================
+  // ADD / UPDATE COURSE
+  // ========================================
   async function handleSubmit(e) {
     e.preventDefault();
 
@@ -136,7 +156,9 @@ export default function CourseManager() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Gagal menyimpan kursus.");
+        throw new Error(
+          data.message || "Gagal menyimpan kursus."
+        );
       }
 
       alert(
@@ -158,6 +180,9 @@ export default function CourseManager() {
     }
   }
 
+  // ========================================
+  // DELETE COURSE
+  // ========================================
   async function handleDelete(id) {
     const confirmed = window.confirm(
       "Apakah kamu yakin ingin menghapus kursus ini?"
@@ -166,14 +191,19 @@ export default function CourseManager() {
     if (!confirmed) return;
 
     try {
-      const response = await fetch(`/api/courses?id=${id}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        `/api/courses?id=${id}`,
+        {
+          method: "DELETE",
+        }
+      );
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Gagal menghapus kursus.");
+        throw new Error(
+          data.message || "Gagal menghapus kursus."
+        );
       }
 
       alert("Kursus berhasil dihapus.");
@@ -188,14 +218,20 @@ export default function CourseManager() {
     }
   }
 
+  // ========================================
+  // RENDER
+  // ========================================
   return (
     <div className="min-h-screen bg-gray-50 p-6 md:p-8">
       <div className="mx-auto max-w-7xl">
+
+        {/* HEADER */}
         <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
             <h1 className="text-2xl font-bold text-[#0B1F3A]">
               My Courses
             </h1>
+
             <p className="mt-1 text-sm text-gray-500">
               Kelola kursus yang kamu buat.
             </p>
@@ -209,12 +245,14 @@ export default function CourseManager() {
           </button>
         </div>
 
+        {/* ERROR */}
         {error && (
           <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             {error}
           </div>
         )}
 
+        {/* SEARCH */}
         <div className="mb-5 rounded-xl border border-gray-200 bg-white p-4">
           <input
             type="text"
@@ -228,9 +266,12 @@ export default function CourseManager() {
           />
         </div>
 
+        {/* COURSE TABLE */}
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[750px] text-left text-sm">
+            <table className="w-full min-w-[900px] text-left text-sm">
+
               <thead className="bg-gray-100 text-xs uppercase text-gray-600">
                 <tr>
                   <th className="px-5 py-4">No.</th>
@@ -243,6 +284,7 @@ export default function CourseManager() {
               </thead>
 
               <tbody className="divide-y divide-gray-100">
+
                 {loading ? (
                   <tr>
                     <td
@@ -267,6 +309,7 @@ export default function CourseManager() {
                       key={course.id}
                       className="hover:bg-gray-50"
                     >
+
                       <td className="px-5 py-4 text-gray-600">
                         {(page - 1) * 10 + index + 1}
                       </td>
@@ -275,6 +318,7 @@ export default function CourseManager() {
                         <p className="font-semibold text-[#0B1F3A]">
                           {course.title}
                         </p>
+
                         <p className="mt-1 max-w-xs truncate text-xs text-gray-500">
                           {course.description || "-"}
                         </p>
@@ -296,8 +340,17 @@ export default function CourseManager() {
                           : "-"}
                       </td>
 
+                      {/* ACTION BUTTONS */}
                       <td className="px-5 py-4">
                         <div className="flex justify-center gap-2">
+
+                          <Link
+                            href={`/teacher/courses/${course.id}/contents`}
+                            className="rounded-md bg-green-50 px-3 py-2 text-xs font-semibold text-green-700 hover:bg-green-100"
+                          >
+                            Kelola Materi
+                          </Link>
+
                           <button
                             onClick={() => openEditForm(course)}
                             className="rounded-md bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100"
@@ -311,21 +364,27 @@ export default function CourseManager() {
                           >
                             Hapus
                           </button>
+
                         </div>
                       </td>
+
                     </tr>
                   ))
                 )}
+
               </tbody>
             </table>
           </div>
 
+          {/* PAGINATION */}
           <div className="flex flex-col justify-between gap-3 border-t border-gray-200 px-5 py-4 sm:flex-row sm:items-center">
+
             <p className="text-sm text-gray-500">
               Total {pagination.total || 0} kursus
             </p>
 
             <div className="flex items-center gap-3">
+
               <button
                 disabled={page <= 1 || loading}
                 onClick={() => setPage((p) => p - 1)}
@@ -347,14 +406,19 @@ export default function CourseManager() {
               >
                 Berikutnya
               </button>
+
             </div>
           </div>
         </div>
 
+        {/* ADD / EDIT MODAL */}
         {showForm && (
           <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
+
             <div className="my-8 w-full max-w-2xl rounded-xl bg-white p-6 shadow-xl">
+
               <div className="mb-6 flex items-center justify-between">
+
                 <h2 className="text-xl font-bold text-[#0B1F3A]">
                   {editingId ? "Edit Kursus" : "Tambah Kursus"}
                 </h2>
@@ -365,13 +429,20 @@ export default function CourseManager() {
                 >
                   &times;
                 </button>
+
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form
+                onSubmit={handleSubmit}
+                className="space-y-4"
+              >
+
+                {/* COURSE TITLE */}
                 <div>
                   <label className="mb-2 block text-sm font-semibold">
                     Nama Kursus *
                   </label>
+
                   <input
                     required
                     name="title"
@@ -382,10 +453,12 @@ export default function CourseManager() {
                   />
                 </div>
 
+                {/* DESCRIPTION */}
                 <div>
                   <label className="mb-2 block text-sm font-semibold">
                     Deskripsi
                   </label>
+
                   <textarea
                     name="description"
                     value={form.description}
@@ -396,10 +469,12 @@ export default function CourseManager() {
                   />
                 </div>
 
+                {/* CATEGORY */}
                 <div>
                   <label className="mb-2 block text-sm font-semibold">
                     Kategori *
                   </label>
+
                   <select
                     required
                     name="category_id"
@@ -407,7 +482,10 @@ export default function CourseManager() {
                     onChange={handleChange}
                     className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 outline-none focus:border-[#0B1F3A]"
                   >
-                    <option value="">Pilih kategori</option>
+                    <option value="">
+                      Pilih kategori
+                    </option>
+
                     {categories.map((category) => (
                       <option
                         key={category.id}
@@ -419,10 +497,12 @@ export default function CourseManager() {
                   </select>
                 </div>
 
+                {/* THUMBNAIL */}
                 <div>
                   <label className="mb-2 block text-sm font-semibold">
                     URL Thumbnail
                   </label>
+
                   <input
                     name="thumbnail"
                     value={form.thumbnail}
@@ -432,11 +512,14 @@ export default function CourseManager() {
                   />
                 </div>
 
+                {/* COURSE DATES */}
                 <div className="grid gap-4 sm:grid-cols-2">
+
                   <div>
                     <label className="mb-2 block text-sm font-semibold">
                       Tanggal Mulai
                     </label>
+
                     <input
                       type="date"
                       name="start_date"
@@ -450,6 +533,7 @@ export default function CourseManager() {
                     <label className="mb-2 block text-sm font-semibold">
                       Tanggal Selesai
                     </label>
+
                     <input
                       type="date"
                       name="end_date"
@@ -458,9 +542,12 @@ export default function CourseManager() {
                       className="w-full rounded-lg border border-gray-300 px-4 py-3"
                     />
                   </div>
+
                 </div>
 
+                {/* FORM ACTIONS */}
                 <div className="flex justify-end gap-3 border-t border-gray-100 pt-5">
+
                   <button
                     type="button"
                     onClick={() => setShowForm(false)}
@@ -480,11 +567,14 @@ export default function CourseManager() {
                       ? "Simpan Perubahan"
                       : "Tambah Kursus"}
                   </button>
+
                 </div>
+
               </form>
             </div>
           </div>
         )}
+
       </div>
     </div>
   );

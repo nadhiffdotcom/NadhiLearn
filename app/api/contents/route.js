@@ -10,7 +10,9 @@ import { verifyToken } from "@/lib/auth";
 
 async function getCurrentTeacher() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("nadhi_token")?.value;
+
+  // Gunakan cookie khusus Teacher
+  const token = cookieStore.get("nadhi_teacher_token")?.value;
 
   if (!token) return null;
 
@@ -173,8 +175,6 @@ export async function GET(request) {
       [...values, limit, offset]
     );
 
-    // Setiap kursus memiliki nomor urut materi sendiri.
-    // next_order_index dihitung langsung dari seluruh data kursus.
     const coursesResult = await pool.query(
       `SELECT
         c.id,
@@ -270,8 +270,6 @@ export async function POST(request) {
     try {
       await client.query("BEGIN");
 
-      // Kunci per kursus agar dua proses tambah materi
-      // tidak memperoleh nomor urut yang sama.
       await client.query(
         "SELECT pg_advisory_xact_lock($1::int, $2::int)",
         [73142, courseId]
@@ -298,7 +296,6 @@ export async function POST(request) {
         );
       }
 
-      // Hitung urutan berikutnya dari seluruh materi kursus.
       const orderResult = await client.query(
         `SELECT COALESCE(MAX(order_index), 0) + 1 AS next_order
          FROM contents

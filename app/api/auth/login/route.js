@@ -22,7 +22,6 @@ export async function POST(request) {
       );
     }
 
-    // Cari pengguna
     const result = await pool.query(
       `SELECT
         id,
@@ -49,7 +48,6 @@ export async function POST(request) {
 
     const user = result.rows[0];
 
-    // Verifikasi password
     const passwordMatch = await bcrypt.compare(
       password,
       user.password
@@ -65,7 +63,6 @@ export async function POST(request) {
       );
     }
 
-    // Tentukan cookie berdasarkan role
     let cookieName;
 
     if (user.role === "admin") {
@@ -94,10 +91,12 @@ export async function POST(request) {
       );
     }
 
-    // Buat JWT
+    // Buat token untuk sesi pengguna
     const token = await createToken(user);
 
-    // Simpan cookie sesuai role
+    // COOKIE SEMENTARA:
+    // Dipertahankan agar halaman lama tetap berfungsi
+    // selama proses migrasi berlangsung.
     const cookieStore = await cookies();
 
     cookieStore.set(cookieName, token, {
@@ -111,6 +110,7 @@ export async function POST(request) {
     return NextResponse.json({
       success: true,
       message: "Login berhasil.",
+      token,
       user: {
         id: user.id,
         username: user.username,

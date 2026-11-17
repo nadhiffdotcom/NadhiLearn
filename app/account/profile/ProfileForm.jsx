@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import { authFetch } from "@/lib/auth-client";
 
 export default function ProfileForm({ user }) {
   const [username, setUsername] = useState(user.username);
@@ -21,16 +22,20 @@ export default function ProfileForm({ user }) {
     setMessage("");
     setSuccess(false);
 
-    // Periksa konfirmasi password
     if (newPassword && newPassword !== confirmPassword) {
       setMessage("Konfirmasi password baru tidak cocok.");
+      return;
+    }
+
+    if (newPassword && newPassword.length < 8) {
+      setMessage("Password baru minimal 8 karakter.");
       return;
     }
 
     setLoading(true);
 
     try {
-      const response = await fetch("/api/account/profile", {
+      const response = await authFetch("/api/account/profile", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -43,7 +48,21 @@ export default function ProfileForm({ user }) {
         }),
       });
 
-      const data = await response.json();
+      const text = await response.text();
+
+      let data;
+
+      try {
+        data = JSON.parse(text);
+      } catch {
+        console.error("Respons API profil bukan JSON:", {
+          status: response.status,
+          response: text.slice(0, 500),
+        });
+
+        setMessage("Server mengirim respons yang tidak valid.");
+        return;
+      }
 
       if (!response.ok) {
         setMessage(data.message || "Gagal memperbarui akun.");
@@ -51,7 +70,7 @@ export default function ProfileForm({ user }) {
       }
 
       setSuccess(true);
-      setMessage(data.message);
+      setMessage(data.message || "Pengaturan akun berhasil diperbarui.");
 
       setUsername(data.user.username);
       setEmail(data.user.email);
@@ -59,8 +78,8 @@ export default function ProfileForm({ user }) {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-
     } catch (error) {
+      console.error("Update profile error:", error);
       setMessage("Tidak dapat terhubung ke server.");
     } finally {
       setLoading(false);
@@ -75,7 +94,6 @@ export default function ProfileForm({ user }) {
       onSubmit={handleSubmit}
       className="rounded-2xl bg-white p-6 text-[#0B1F3A] md:p-8"
     >
-
       {/* JENIS AKUN */}
       <div className="mb-6">
         <p className="mb-2 text-sm font-semibold uppercase">
@@ -195,7 +213,6 @@ export default function ProfileForm({ user }) {
       >
         {loading ? "Menyimpan..." : "Simpan Perubahan"}
       </button>
-
     </form>
   );
 }

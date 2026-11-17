@@ -1,37 +1,25 @@
 
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import pool from "@/lib/db";
-import { verifyToken, createToken } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/lib/auth-server";
 
 export async function PUT(request) {
   try {
-    // 1. Periksa sesi login
-    const cookieStore = await cookies();
-    const token = cookieStore.get("nadhi_token")?.value;
+    // 1. Periksa token dari tab yang sedang aktif
+    const auth = await getAuthenticatedUser(request);
 
-    if (!token) {
+    if (!auth.user) {
       return NextResponse.json(
         {
           success: false,
-          message: "Silakan login terlebih dahulu.",
+          message: auth.error,
         },
-        { status: 401 }
+        { status: auth.status }
       );
     }
 
-    const decoded = await verifyToken(token);
-
-    if (!decoded?.id) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Sesi tidak valid. Silakan login kembali.",
-        },
-        { status: 401 }
-      );
-    }
+    const userId = auth.user.id;
 
     // 2. Ambil data dari form
     const body = await request.json();
@@ -47,7 +35,7 @@ export async function PUT(request) {
         : "";
 
     const currentPassword = body.currentPassword;
-    const newPassword = body.newPassword;
+    const newPassword = body.newPassword ?? "";
 
     // 3. Validasi input
     if (
@@ -86,10 +74,8 @@ export async function PUT(request) {
     }
 
     if (
-      newPassword !== undefined &&
-      newPassword !== "" &&
-      (typeof newPassword !== "string" ||
-        newPassword.length < 8)
+      typeof newPassword !== "string" ||
+      (newPassword !== "" && newPassword.length < 8)
     ) {
       return NextResponse.json(
         {
@@ -100,13 +86,13 @@ export async function PUT(request) {
       );
     }
 
-    // 4. Ambil data pengguna dari database
+    // 4. Ambil pengguna berdasarkan token tab aktif
     const userResult = await pool.query(
       `SELECT id, username, email, password, role
        FROM users
        WHERE id = $1
        LIMIT 1`,
-      [decoded.id]
+      [userId]
     );
 
     if (userResult.rows.length === 0) {
@@ -182,18 +168,7 @@ export async function PUT(request) {
 
     const updatedUser = updateResult.rows[0];
 
-    // 9. Perbarui token login
-    const newToken = await createToken(updatedUser);
-
-    cookieStore.set("nadhi_token", newToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24,
-    });
-
-    // 10. Kirim respons berhasil
+    // 9. Kirim hasil tanpa mengubah cookie atau token tab lain
     return NextResponse.json({
       success: true,
       message: "Pengaturan akun berhasil diperbarui.",
@@ -204,7 +179,6 @@ export async function PUT(request) {
         role: updatedUser.role,
       },
     });
-
   } catch (error) {
     console.error("Update profile error:", error);
 

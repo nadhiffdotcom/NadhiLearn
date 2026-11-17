@@ -1,53 +1,120 @@
 
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import pool from "@/lib/db";
-import { verifyToken } from "@/lib/auth";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { authFetch } from "@/lib/auth-client";
 import ProfileForm from "./ProfileForm";
 
-export default async function ProfilePage() {
-  // 1. Periksa sesi login
-  const cookieStore = await cookies();
-  const token = cookieStore.get("nadhi_token")?.value;
+export default function ProfilePage() {
+  const router = useRouter();
 
-  if (!token) {
-    redirect("/login");
-  }
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const payload = await verifyToken(token);
+  useEffect(() => {
+    let active = true;
 
-  if (!payload?.id) {
-    redirect("/login");
-  }
+    async function loadProfile() {
+      try {
+        const token = sessionStorage.getItem("nadhi_token");
 
-  // 2. Ambil data pengguna dari database
-  const result = await pool.query(
-    `SELECT id, username, email, role
-     FROM users
-     WHERE id = $1
-     LIMIT 1`,
-    [payload.id]
-  );
+        if (!token) {
+          router.replace("/login");
+          return;
+        }
 
-  if (result.rows.length === 0) {
-    redirect("/login");
-  }
+        const response = await authFetch("/api/auth/me");
+        const data = await response.json();
 
-  const user = result.rows[0];
+        if (response.status === 401) {
+          router.replace("/login");
+          return;
+        }
 
-  // 3. Tentukan halaman dashboard berdasarkan role
+        if (!response.ok || !data.user) {
+          throw new Error(
+            data.message || "Gagal mengambil data akun."
+          );
+        }
+
+        if (!active) return;
+
+        const currentUser = data.user;
+
+        if (
+          !["admin", "teacher", "student"].includes(currentUser.role)
+        ) {
+          router.replace("/login");
+          return;
+        }
+
+        if (
+          currentUser.role === "teacher" &&
+          currentUser.teacherStatus !== "approved"
+        ) {
+          router.replace("/login");
+          return;
+        }
+
+        setUser(currentUser);
+      } catch (error) {
+        console.error("Profile loading error:", error);
+
+        if (active) {
+          setError(
+            error.message || "Terjadi kesalahan saat mengambil data akun."
+          );
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    loadProfile();
+
+    return () => {
+      active = false;
+    };
+  }, [router]);
+
   const dashboardPath =
-    user.role === "admin"
+    user?.role === "admin"
       ? "/admin/dashboard"
-      : user.role === "teacher"
+      : user?.role === "teacher"
         ? "/teacher/dashboard"
         : "/student/dashboard";
+
+  if (loading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#0B1F3A] text-white">
+        Memuat pengaturan akun...
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#0B1F3A] px-6 text-white">
+        <div className="max-w-lg text-center">
+          <p className="mb-5">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="rounded-lg bg-white px-5 py-2 font-semibold text-[#0B1F3A]"
+          >
+            Coba Lagi
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  if (!user) return null;
 
   return (
     <main className="min-h-screen bg-[#0B1F3A] px-6 py-12 text-white">
       <div className="mx-auto max-w-3xl">
-
-        {/* KEMBALI KE DASHBOARD */}
         <a
           href={dashboardPath}
           className="mb-8 inline-block font-semibold text-white underline underline-offset-4 transition hover:text-gray-300"
@@ -55,7 +122,6 @@ export default async function ProfilePage() {
           ← Kembali ke Dashboard
         </a>
 
-        {/* JUDUL */}
         <div className="mb-8">
           <p className="mb-2 text-sm font-semibold uppercase tracking-wider">
             NADHILEARN ACCOUNT
@@ -70,9 +136,7 @@ export default async function ProfilePage() {
           </p>
         </div>
 
-        {/* FORM */}
         <ProfileForm user={user} />
-
       </div>
     </main>
   );

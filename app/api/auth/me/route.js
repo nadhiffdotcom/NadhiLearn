@@ -1,30 +1,28 @@
 
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { verifyToken } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/lib/auth-server";
 
-export async function GET() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("nadhi_token")?.value;
+export async function GET(request) {
+  const result = await getAuthenticatedUser(request);
 
-  if (!token) {
-    return NextResponse.json({
-      success: true,
-      user: null,
-    });
-  }
-
-  const user = await verifyToken(token);
-
-  if (!user) {
-    return NextResponse.json({
-      success: true,
-      user: null,
-    });
+  if (!result.user) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: result.error,
+      },
+      { status: result.status }
+    );
   }
 
   return NextResponse.json({
     success: true,
-    user,
+    user: {
+      id: result.user.id,
+      username: result.user.username,
+      email: result.user.email,
+      role: result.user.role,
+      teacherStatus: result.user.teacher_status,
+    },
   });
 }
