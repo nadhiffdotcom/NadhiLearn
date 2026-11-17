@@ -147,7 +147,6 @@ export default function ContentManager() {
         content: form.content,
       };
 
-      // ORDER INDEX DIPAKAI SAAT EDIT
       if (editingId) {
         payload.id = editingId;
         payload.order_index = Number(form.order_index);
@@ -235,7 +234,6 @@ export default function ContentManager() {
 
         {/* HEADER */}
         <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-
           <div>
             <Link
               href="/teacher/courses"
@@ -259,7 +257,6 @@ export default function ContentManager() {
           >
             + Tambah Materi
           </button>
-
         </div>
 
         {/* ERROR */}
@@ -285,10 +282,8 @@ export default function ContentManager() {
 
         {/* CONTENT TABLE */}
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
-
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px] text-left text-sm">
-
               <thead className="bg-gray-100 text-xs uppercase text-gray-600">
                 <tr>
                   <th className="px-5 py-4">No.</th>
@@ -301,7 +296,6 @@ export default function ContentManager() {
               </thead>
 
               <tbody className="divide-y divide-gray-100">
-
                 {loading ? (
                   <tr>
                     <td
@@ -326,7 +320,6 @@ export default function ContentManager() {
                       key={item.id}
                       className="hover:bg-gray-50"
                     >
-
                       <td className="px-5 py-4 text-gray-600">
                         {(page - 1) * 10 + index + 1}
                       </td>
@@ -357,6 +350,13 @@ export default function ContentManager() {
                       <td className="px-5 py-4">
                         <div className="flex justify-center gap-2">
 
+                          <Link
+                            href={`/teacher/courses/${courseId}/contents/${item.id}/discussion`}
+                            className="rounded-md bg-green-50 px-3 py-2 text-xs font-semibold text-green-700 hover:bg-green-100"
+                          >
+                            Lihat Diskusi
+                          </Link>
+
                           <button
                             onClick={() => openEditForm(item)}
                             className="rounded-md bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100"
@@ -373,24 +373,20 @@ export default function ContentManager() {
 
                         </div>
                       </td>
-
                     </tr>
                   ))
                 )}
-
               </tbody>
             </table>
           </div>
 
           {/* PAGINATION */}
           <div className="flex flex-col justify-between gap-3 border-t border-gray-200 px-5 py-4 sm:flex-row sm:items-center">
-
             <p className="text-sm text-gray-500">
               Total {pagination.total || 0} materi
             </p>
 
             <div className="flex items-center gap-3">
-
               <button
                 disabled={page <= 1 || loading}
                 onClick={() => setPage((p) => p - 1)}
@@ -412,20 +408,15 @@ export default function ContentManager() {
               >
                 Berikutnya
               </button>
-
             </div>
           </div>
-
         </div>
 
         {/* ADD / EDIT MODAL */}
         {showForm && (
           <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
-
             <div className="my-8 w-full max-w-2xl rounded-xl bg-white p-6 shadow-xl">
-
               <div className="mb-6 flex items-center justify-between">
-
                 <h2 className="text-xl font-bold text-[#0B1F3A]">
                   {editingId ? "Edit Materi" : "Tambah Materi"}
                 </h2>
@@ -436,14 +427,12 @@ export default function ContentManager() {
                 >
                   &times;
                 </button>
-
               </div>
 
               <form
                 onSubmit={handleSubmit}
                 className="space-y-4"
               >
-
                 {/* CONTENT TITLE */}
                 <div>
                   <label className="mb-2 block text-sm font-semibold">
@@ -515,7 +504,6 @@ export default function ContentManager() {
 
                 {/* FORM ACTIONS */}
                 <div className="flex justify-end gap-3 border-t border-gray-100 pt-5">
-
                   <button
                     type="button"
                     onClick={() => setShowForm(false)}
@@ -535,14 +523,11 @@ export default function ContentManager() {
                       ? "Simpan Perubahan"
                       : "Tambah Materi"}
                   </button>
-
                 </div>
-
               </form>
             </div>
           </div>
         )}
-
       </div>
     </div>
   );
