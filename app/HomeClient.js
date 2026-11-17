@@ -4,31 +4,72 @@
 import { useState, useEffect } from "react";
 import { authFetch } from "@/lib/auth-client";
 
-const courses = [
-  {
-    category: "Programming",
-    title: "Full Stack Web Development",
-    teacher: "Andi Pratama",
-    lessons: 12,
-  },
-  {
-    category: "Design",
-    title: "UI/UX Design Masterclass",
-    teacher: "Sarah Putri",
-    lessons: 10,
-  },
-  {
-    category: "Marketing",
-    title: "Digital Marketing Strategy",
-    teacher: "Budi Santoso",
-    lessons: 8,
-  },
-];
-
 export default function HomeClient() {
   const [user, setUser] = useState(null);
   const [checkingUser, setCheckingUser] = useState(true);
   const [activeMenu, setActiveMenu] = useState(null);
+
+  // State Homepage Courses
+  const [courses, setCourses] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [search, setSearch] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [loadingCourses, setLoadingCourses] = useState(true);
+  const [courseError, setCourseError] = useState("");
+
+  // Mengambil data course dari API Homepage.
+  useEffect(() => {
+    let active = true;
+
+    async function loadCourses() {
+      setLoadingCourses(true);
+      setCourseError("");
+
+      try {
+        const params = new URLSearchParams();
+
+        if (search.trim()) {
+          params.set("search", search.trim());
+        }
+
+        if (categoryId) {
+          params.set("category_id", categoryId);
+        }
+
+        const response = await fetch(
+          `/api/home/courses?${params.toString()}`
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.message || "Gagal mengambil data course.");
+        }
+
+        if (active) {
+          setCourses(data.courses || []);
+          setCategories(data.categories || []);
+        }
+      } catch (error) {
+        console.error("Gagal mengambil course Homepage:", error);
+
+        if (active) {
+          setCourseError(error.message || "Terjadi kesalahan.");
+          setCourses([]);
+        }
+      } finally {
+        if (active) {
+          setLoadingCourses(false);
+        }
+      }
+    }
+
+    loadCourses();
+
+    return () => {
+      active = false;
+    };
+  }, [search, categoryId]);
 
   // Periksa akun berdasarkan token pada tab ini.
   useEffect(() => {
@@ -319,37 +360,77 @@ export default function HomeClient() {
             </p>
           </div>
 
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {courses.map((course, index) => (
-              <div
-                key={index}
-                className="rounded-xl border border-[#0B1F3A] p-7 transition hover:-translate-y-1"
-              >
-                <p className="text-sm font-bold uppercase tracking-wider">
-                  {course.category}
-                </p>
+          {/* SEARCH DAN FILTER */}
+          <div className="mb-10 grid gap-4 md:grid-cols-2">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Cari course..."
+              className="w-full rounded-lg border border-[#0B1F3A] bg-white px-4 py-3 text-[#0B1F3A] outline-none focus:ring-2 focus:ring-[#0B1F3A]"
+            />
 
-                <h3 className="mt-5 text-2xl font-bold">
-                  {course.title}
-                </h3>
+            <select
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+              className="w-full rounded-lg border border-[#0B1F3A] bg-white px-4 py-3 text-[#0B1F3A] outline-none focus:ring-2 focus:ring-[#0B1F3A]"
+            >
+              <option value="">Semua Kategori</option>
 
-                <p className="mt-4">
-                  Teacher: {course.teacher}
-                </p>
-
-                <p className="mt-2">
-                  {course.lessons} Lessons
-                </p>
-
-                <a
-                  href="/courses"
-                  className="mt-8 inline-block rounded-lg bg-[#0B1F3A] px-6 py-3 font-semibold text-white transition hover:bg-white hover:text-[#0B1F3A] hover:outline hover:outline-1 hover:outline-[#0B1F3A]"
-                >
-                  View Course
-                </a>
-              </div>
-            ))}
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
           </div>
+
+          {/* COURSE LIST */}
+          {loadingCourses ? (
+            <p className="py-10 text-center">
+              Memuat course...
+            </p>
+          ) : courseError ? (
+            <p className="py-10 text-center text-red-600">
+              {courseError}
+            </p>
+          ) : courses.length === 0 ? (
+            <p className="py-10 text-center">
+              Course tidak ditemukan.
+            </p>
+          ) : (
+            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+              {courses.map((course) => (
+                <div
+                  key={course.id}
+                  className="rounded-xl border border-[#0B1F3A] p-7 transition hover:-translate-y-1"
+                >
+                  <p className="text-sm font-bold uppercase tracking-wider">
+                    {course.category_name || "Uncategorized"}
+                  </p>
+
+                  <h3 className="mt-5 text-2xl font-bold">
+                    {course.title}
+                  </h3>
+
+                  <p className="mt-4">
+                    Teacher: {course.teacher_name || "Belum ditentukan"}
+                  </p>
+
+                  <p className="mt-2">
+                    {course.enrollment_count} Students Enrolled
+                  </p>
+
+                  <a
+                    href="/courses"
+                    className="mt-8 inline-block rounded-lg bg-[#0B1F3A] px-6 py-3 font-semibold text-white transition hover:bg-white hover:text-[#0B1F3A] hover:outline hover:outline-1 hover:outline-[#0B1F3A]"
+                  >
+                    View Course
+                  </a>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="mt-12 text-center">
             <a
