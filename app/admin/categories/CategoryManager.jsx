@@ -10,6 +10,7 @@ export default function CategoryManager({ initialCategories }) {
   const [editingId, setEditingId] = useState(null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
 
   // PAGINATION
   const itemsPerPage = 10;
@@ -37,6 +38,15 @@ export default function CategoryManager({ initialCategories }) {
     setName("");
     setDescription("");
     setEditingId(null);
+    setIsFormOpen(false);
+  }
+
+  function handleAddClick() {
+    setName("");
+    setDescription("");
+    setEditingId(null);
+    setMessage("");
+    setIsFormOpen(true);
   }
 
   async function handleSubmit(e) {
@@ -74,14 +84,20 @@ export default function CategoryManager({ initialCategories }) {
         setCategories((previous) =>
           previous.map((category) =>
             category.id === Number(editingId)
-              ? { ...data.category, id: Number(data.category.id) }
+              ? {
+                  ...data.category,
+                  id: Number(data.category.id),
+                }
               : category
           )
         );
       } else {
         setCategories((previous) => [
           ...previous,
-          { ...data.category, id: Number(data.category.id) },
+          {
+            ...data.category,
+            id: Number(data.category.id),
+          },
         ]);
       }
 
@@ -99,6 +115,7 @@ export default function CategoryManager({ initialCategories }) {
     setName(category.name);
     setDescription(category.description || "");
     setMessage("");
+    setIsFormOpen(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -137,6 +154,16 @@ export default function CategoryManager({ initialCategories }) {
       if (editingId === id) {
         resetForm();
       }
+
+      setCurrentPage((previous) =>
+        Math.min(
+          previous,
+          Math.max(
+            1,
+            Math.ceil((categories.length - 1) / itemsPerPage)
+          )
+        )
+      );
     } catch {
       setMessage("Tidak dapat terhubung ke server.");
     } finally {
@@ -147,80 +174,97 @@ export default function CategoryManager({ initialCategories }) {
   return (
     <main className="min-h-screen bg-white text-[#0B1F3A]">
       <section className="mx-auto max-w-7xl px-6 py-10">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold">
-            Manajemen Kategori
-          </h1>
-          <p className="mt-2 text-gray-600">
-            Kelola kategori kursus NadhiLearn.
-          </p>
+        {/* HEADER */}
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">
+              Manajemen Kategori
+            </h1>
+            <p className="mt-2 text-gray-600">
+              Kelola kategori kursus NadhiLearn.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleAddClick}
+            className="rounded-lg bg-[#0B1F3A] px-6 py-3 font-semibold text-white transition hover:bg-[#17385F] sm:mr-4 sm:-mt-2"          >
+            + Tambah Kategori
+          </button>
         </div>
 
-        <div className="mb-10 rounded-xl border border-gray-200 p-6">
-          <h2 className="mb-5 text-xl font-bold">
-            {editingId ? "Edit Kategori" : "Tambah Kategori"}
-          </h2>
+        {/* FORM TAMBAH / EDIT */}
+        {isFormOpen && (
+          <div className="mb-10 rounded-xl border border-gray-200 p-6">
+            <h2 className="mb-5 text-xl font-bold">
+              {editingId ? "Edit Kategori" : "Tambah Kategori"}
+            </h2>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="mb-2 block font-semibold">
-                Nama Kategori
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Contoh: Programming"
-                className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-[#0B1F3A]"
-                required
-              />
-            </div>
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label className="mb-2 block font-semibold">
+                  Nama Kategori
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Contoh: Programming"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-[#0B1F3A]"
+                  required
+                />
+              </div>
 
-            <div>
-              <label className="mb-2 block font-semibold">
-                Deskripsi
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Masukkan deskripsi kategori"
-                rows={3}
-                className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-[#0B1F3A]"
-              />
-            </div>
+              <div>
+                <label className="mb-2 block font-semibold">
+                  Deskripsi
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Masukkan deskripsi kategori"
+                  rows={3}
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-[#0B1F3A]"
+                />
+              </div>
 
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="submit"
-                disabled={loading}
-                className="rounded-lg bg-[#0B1F3A] px-6 py-3 font-semibold text-white transition hover:bg-[#17385F] disabled:opacity-50"
-              >
-                {loading
-                  ? "Memproses..."
-                  : editingId
-                    ? "Simpan Perubahan"
-                    : "Tambah Kategori"}
-              </button>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="rounded-lg bg-[#0B1F3A] px-6 py-3 font-semibold text-white transition hover:bg-[#17385F] disabled:opacity-50"
+                >
+                  {loading
+                    ? "Memproses..."
+                    : editingId
+                      ? "Simpan Perubahan"
+                      : "Tambah Kategori"}
+                </button>
 
-              {editingId && (
                 <button
                   type="button"
-                  onClick={resetForm}
+                  onClick={() => {
+                    resetForm();
+                    setMessage("");
+                  }}
+                  disabled={loading}
                   className="rounded-lg border border-gray-300 px-6 py-3 font-semibold"
                 >
                   Batal
                 </button>
-              )}
-            </div>
-          </form>
+              </div>
+            </form>
+          </div>
+        )}
 
-          {message && (
-            <p className="mt-4 rounded-lg bg-gray-100 p-3 text-sm">
-              {message}
-            </p>
-          )}
-        </div>
+        {/* PESAN */}
+        {message && (
+          <p className="mb-5 rounded-lg bg-gray-100 p-3 text-sm">
+            {message}
+          </p>
+        )}
 
+        {/* DAFTAR KATEGORI */}
         <div className="overflow-hidden rounded-xl border border-gray-200">
           <div className="border-b border-gray-200 px-6 py-5">
             <h2 className="text-xl font-bold">
@@ -246,19 +290,23 @@ export default function CategoryManager({ initialCategories }) {
                   </thead>
 
                   <tbody>
-                    {displayedCategories.map((category, index) => (                      <tr
+                    {displayedCategories.map((category, index) => (
+                      <tr
                         key={category.id}
                         className="border-t border-gray-200"
                       >
                         <td className="px-6 py-4">
-                        {startIndex + index + 1}
-                        </td>   
+                          {startIndex + index + 1}
+                        </td>
+
                         <td className="px-6 py-4 font-semibold">
                           {category.name}
                         </td>
+
                         <td className="px-6 py-4 text-gray-600">
                           {category.description || "-"}
                         </td>
+
                         <td className="px-6 py-4">
                           <div className="flex gap-3">
                             <button
