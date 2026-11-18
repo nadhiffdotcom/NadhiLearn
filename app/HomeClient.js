@@ -385,7 +385,7 @@ export default function HomeClient() {
             </select>
           </div>
 
-          {/* COURSE LIST */}
+                    {/* COURSE LIST */}
           {loadingCourses ? (
             <p className="py-10 text-center">
               Memuat course...
@@ -399,47 +399,60 @@ export default function HomeClient() {
               Course tidak ditemukan.
             </p>
           ) : (
-            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-              {courses.map((course) => (
-                <div
-                  key={course.id}
-                  className="rounded-xl border border-[#0B1F3A] p-7 transition hover:-translate-y-1"
-                >
-                  <p className="text-sm font-bold uppercase tracking-wider">
-                    {course.category_name || "Uncategorized"}
-                  </p>
+            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-6">
+              {courses.map((course, index) => {
+                const isLastRowTwo =
+                  courses.length % 3 === 2 &&
+                  index >= courses.length - 2;
 
-                  <h3 className="mt-5 text-2xl font-bold">
-                    {course.title}
-                  </h3>
+                return (
+                  <div
+                    key={course.id}
+                    className={`rounded-xl border border-[#0B1F3A] p-7 transition hover:-translate-y-1 ${
+                      isLastRowTwo
+                        ? "lg:col-span-2"
+                        : "lg:col-span-2"
+                    }`}
+                    style={
+                      isLastRowTwo
+                        ? {
+                            gridColumn:
+                              index === courses.length - 2
+                                ? "2 / span 2"
+                                : "4 / span 2",
+                          }
+                        : undefined
+                    }
+                  >
+                    <p className="text-sm font-bold uppercase tracking-wider">
+                      {course.category_name || "Uncategorized"}
+                    </p>
 
-                  <p className="mt-4">
-                    Teacher: {course.teacher_name || "Belum ditentukan"}
-                  </p>
+                    <h3 className="mt-5 text-2xl font-bold">
+                      {course.title}
+                    </h3>
 
-                  <p className="mt-2">
-                    {course.enrollment_count} Students Enrolled
-                  </p>
+                    <p className="mt-4">
+                      Teacher: {course.teacher_name || "Belum ditentukan"}
+                    </p>
 
-                   <a
-                href={`/courses/${course.id}`}
-                className="mt-8 inline-block rounded-lg bg-[#0B1F3A] px-6 py-3 font-semibold text-white transition hover:bg-white hover:text-[#0B1F3A] hover:outline hover:outline-1 hover:outline-[#0B1F3A]"
-              >
-                View Course
-              </a>
-                </div>
-              ))}
+                    <p className="mt-2">
+                      {course.enrollment_count} Students Enrolled
+                    </p>
+
+                    <a
+                      href={`/courses/${course.id}`}
+                      className="mt-8 inline-block rounded-lg bg-[#0B1F3A] px-6 py-3 font-semibold text-white transition hover:bg-white hover:text-[#0B1F3A] hover:outline hover:outline-1 hover:outline-[#0B1F3A]"
+                    >
+                      View Course
+                    </a>
+                  </div>
+                );
+              })}
             </div>
           )}
 
-          <div className="mt-12 text-center">
-            <a
-              href="/courses"
-              className="inline-block border border-[#0B1F3A] px-8 py-3 font-bold transition hover:bg-[#0B1F3A] hover:text-white"
-            >
-              View All Courses
-            </a>
-          </div>
+        
         </div>
       </section>
 
