@@ -421,12 +421,12 @@ export default function HomeClient() {
                     {course.enrollment_count} Students Enrolled
                   </p>
 
-                  <a
-                    href="/courses"
-                    className="mt-8 inline-block rounded-lg bg-[#0B1F3A] px-6 py-3 font-semibold text-white transition hover:bg-white hover:text-[#0B1F3A] hover:outline hover:outline-1 hover:outline-[#0B1F3A]"
-                  >
-                    View Course
-                  </a>
+                   <a
+                href={`/courses/${course.id}`}
+                className="mt-8 inline-block rounded-lg bg-[#0B1F3A] px-6 py-3 font-semibold text-white transition hover:bg-white hover:text-[#0B1F3A] hover:outline hover:outline-1 hover:outline-[#0B1F3A]"
+              >
+                View Course
+              </a>
                 </div>
               ))}
             </div>
