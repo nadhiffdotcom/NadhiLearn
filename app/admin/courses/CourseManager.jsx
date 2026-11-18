@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 const initialForm = {
   title: "",
@@ -39,7 +39,9 @@ export default function CourseManager() {
 
   const [message, setMessage] = useState("");
 
-  
+  // REF INPUT FILE
+  const fileInputRef = useRef(null);
+
   // =====================================
   // FETCH COURSES
   // =====================================
@@ -71,7 +73,6 @@ export default function CourseManager() {
       setTeachers(data.teachers || []);
       setPagination(data.pagination);
     } catch (error) {
-      // Request yang dibatalkan tidak dianggap sebagai error.
       if (error.name === "AbortError") return;
 
       setMessage(
@@ -87,7 +88,6 @@ export default function CourseManager() {
   useEffect(() => {
     const controller = new AbortController();
 
-    // Tunggu 350 ms setelah pengguna berhenti mengetik.
     const timeoutId = setTimeout(() => {
       fetchCourses(controller.signal);
     }, 350);
@@ -111,6 +111,7 @@ export default function CourseManager() {
     }));
   }
 
+  // UPLOAD IMAGE
   function handleImageChange(event) {
     const file = event.target.files?.[0];
 
@@ -126,12 +127,17 @@ export default function CourseManager() {
       setMessage(
         "Format gambar harus JPG, PNG, atau WEBP."
       );
+
       event.target.value = "";
       return;
     }
 
-    if (file.size === 0 || file.size > 5 * 1024 * 1024) {
+    if (
+      file.size === 0 ||
+      file.size > 5 * 1024 * 1024
+    ) {
       setMessage("Ukuran gambar maksimal 5 MB.");
+
       event.target.value = "";
       return;
     }
@@ -141,15 +147,39 @@ export default function CourseManager() {
     setMessage("");
   }
 
+  // REMOVE IMAGE
+  function handleRemoveImage() {
+    setSelectedFile(null);
+    setPreviewImage("");
+
+    setForm((previous) => ({
+      ...previous,
+      thumbnail: "",
+    }));
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+
+    setMessage("");
+  }
+
+  // OPEN ADD FORM
   function openAddForm() {
     setEditingId(null);
     setForm(initialForm);
     setSelectedFile(null);
     setPreviewImage("");
     setMessage("");
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+
     setShowForm(true);
   }
 
+  // OPEN EDIT FORM
   function openEditForm(course) {
     setEditingId(course.id);
 
@@ -170,15 +200,25 @@ export default function CourseManager() {
     setSelectedFile(null);
     setPreviewImage(course.thumbnail || "");
     setMessage("");
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+
     setShowForm(true);
   }
 
+  // CLOSE FORM
   function closeForm() {
     setShowForm(false);
     setSelectedFile(null);
     setPreviewImage("");
     setForm(initialForm);
     setEditingId(null);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   }
 
   // =====================================
@@ -188,13 +228,26 @@ export default function CourseManager() {
   async function handleSubmit(event) {
     event.preventDefault();
 
+    // VALIDASI TANGGAL
+    if (
+      form.start_date &&
+      form.end_date &&
+      form.end_date < form.start_date
+    ) {
+      setMessage(
+        "Tanggal selesai tidak boleh lebih awal dari tanggal mulai."
+ 
+      );
+      return;
+    }
+
     setSaving(true);
     setMessage("");
 
     try {
       let thumbnailUrl = form.thumbnail;
 
-      // Upload gambar jika ada file baru
+      // UPLOAD GAMBAR BARU
       if (selectedFile) {
         const uploadData = new FormData();
 
@@ -219,7 +272,7 @@ export default function CourseManager() {
         thumbnailUrl = uploaded.url;
       }
 
-      // Simpan data kursus
+      // SIMPAN DATA KURSUS
       const response = await fetch("/api/courses", {
         method: editingId ? "PUT" : "POST",
         headers: {
@@ -655,6 +708,7 @@ export default function CourseManager() {
                 </label>
 
                 <input
+                  ref={fileInputRef}
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
                   onChange={handleImageChange}
@@ -665,6 +719,7 @@ export default function CourseManager() {
                   Format JPG, PNG, atau WEBP. Maksimal 5 MB.
                 </p>
 
+                {/* PREVIEW IMAGE */}
                 {previewImage && (
                   <div className="mt-4">
                     <p className="mb-2 text-sm font-semibold text-[#0B1F3A]">
@@ -676,6 +731,15 @@ export default function CourseManager() {
                       alt="Preview sampul kursus"
                       className="h-48 w-full rounded-lg border border-gray-200 object-cover"
                     />
+
+                    {/* REMOVE IMAGE BUTTON */}
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="mt-3 rounded-lg border border-red-600 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-600 hover:text-white"
+                    >
+                      Hapus Gambar
+                    </button>
                   </div>
                 )}
               </div>
