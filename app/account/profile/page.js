@@ -10,6 +10,7 @@ export default function ProfilePage() {
   const router = useRouter();
 
   const [user, setUser] = useState(null);
+  const [overview, setOverview] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -39,8 +40,6 @@ export default function ProfilePage() {
           );
         }
 
-        if (!active) return;
-
         const currentUser = data.user;
 
         if (
@@ -58,13 +57,34 @@ export default function ProfilePage() {
           return;
         }
 
+        if (!active) return;
+
         setUser(currentUser);
+
+        // Ambil data tambahan berdasarkan role
+        const overviewResponse = await authFetch(
+          "/api/account/profile/overview"
+        );
+
+        const overviewData = await overviewResponse.json();
+
+        if (!overviewResponse.ok) {
+          throw new Error(
+            overviewData.message ||
+              "Gagal mengambil informasi course dan progress."
+          );
+        }
+
+        if (!active) return;
+
+        setOverview(overviewData.overview || {});
       } catch (error) {
         console.error("Profile loading error:", error);
 
         if (active) {
           setError(
-            error.message || "Terjadi kesalahan saat mengambil data akun."
+            error.message ||
+              "Terjadi kesalahan saat mengambil data akun."
           );
         }
       } finally {
@@ -136,7 +156,7 @@ export default function ProfilePage() {
           </p>
         </div>
 
-        <ProfileForm user={user} />
+        <ProfileForm user={user} overview={overview} />
       </div>
     </main>
   );

@@ -416,7 +416,7 @@ export default function HomeClient() {
             ) : user ? (
               <>
                 <span className="max-w-32 truncate">
-                  Hi, {user.username}
+                  Hi, {user?.display_name || "Nama belum diatur"}
                 </span>
 
                 <button
@@ -514,8 +514,7 @@ export default function HomeClient() {
                 ) : user ? (
                   <div className="flex flex-col gap-3">
                     <span className="font-semibold">
-                      Hi, {user.username}
-                    </span>
+{user?.display_name || "Nama belum diatur"}                    </span>
 
                     <button
                       onClick={handleLogout}

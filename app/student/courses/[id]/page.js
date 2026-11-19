@@ -93,8 +93,12 @@ async function markContentCompleted(formData) {
 
   // SAVE COMPLETED PROGRESS
   await pool.query(
-    `INSERT INTO content_progress
-       (enrollment_id, content_id, is_completed, completed_at)
+    `INSERT INTO content_progress (
+       enrollment_id,
+       content_id,
+       is_completed,
+       completed_at
+     )
      VALUES ($1, $2, TRUE, NOW())
      ON CONFLICT (enrollment_id, content_id)
      DO UPDATE SET
@@ -135,12 +139,20 @@ async function markContentCompleted(formData) {
          student_name,
          course_title
        )
-       SELECT $1, $2, u.username, c.title
-       FROM users u
-       JOIN courses c ON c.id = $3
-       WHERE u.id = $4
+       SELECT
+         e.id,
+         $2,
+         COALESCE(
+           NULLIF(BTRIM(u.display_name), ''),
+           'Nama belum diatur'
+         ),
+         c.title
+       FROM enrollments e
+       JOIN users u ON u.id = e.student_id
+       JOIN courses c ON c.id = e.course_id
+       WHERE e.id = $1
        ON CONFLICT (enrollment_id) DO NOTHING`,
-      [enrollmentId, certificateCode, courseId, student.id]
+      [enrollmentId, certificateCode]
     );
   }
 
@@ -168,7 +180,7 @@ async function addComment(formData) {
     !comment ||
     comment.length > 2000
   ) {
-    redirect(`/student/courses/${courseId}`);
+    redirect("/student/my-courses");
   }
 
   const student = await getStudent();
@@ -256,7 +268,10 @@ export default async function CourseDetailPage({ params }) {
        c.title,
        c.description,
        c.thumbnail,
-       teacher.username AS teacher_name,
+       COALESCE(
+         NULLIF(BTRIM(teacher.display_name), ''),
+         'Nama belum diatur'
+       ) AS teacher_name,
        cat.name AS category_name
      FROM courses c
      LEFT JOIN users teacher ON teacher.id = c.teacher_id
@@ -311,7 +326,10 @@ export default async function CourseDetailPage({ params }) {
          cm.created_at,
          cm.updated_at,
          u.id AS user_id,
-         u.username,
+         COALESCE(
+           NULLIF(BTRIM(u.display_name), ''),
+           'Nama belum diatur'
+         ) AS display_name,
          u.role
        FROM comments cm
        JOIN users u ON u.id = cm.user_id
@@ -350,47 +368,48 @@ export default async function CourseDetailPage({ params }) {
       ? Math.round((completedCount / totalContents) * 100)
       : 0;
 
-// ========================================
-// AUTO ISSUE CERTIFICATE IF PROGRESS 100%
-// ========================================
-if (
-  totalContents > 0 &&
-  completedCount === totalContents
-) {
-  // Cek apakah sertifikat sudah tersedia
-  const certificateResult = await pool.query(
-    `SELECT id
-     FROM certificates
-     WHERE enrollment_id = $1
-     LIMIT 1`,
-    [enrollmentId]
-  );
-
-  // Terbitkan hanya jika belum ada
-  if (certificateResult.rows.length === 0) {
-    const certificateCode = `NDH-${randomUUID().toUpperCase()}`;
-
-    await pool.query(
-      `INSERT INTO certificates (
-         enrollment_id,
-         certificate_code,
-         student_name,
-         course_title
-       )
-       SELECT
-         e.id,
-         $2,
-         u.username,
-         c.title
-       FROM enrollments e
-       JOIN users u ON u.id = e.student_id
-       JOIN courses c ON c.id = e.course_id
-       WHERE e.id = $1
-       ON CONFLICT (enrollment_id) DO NOTHING`,
-      [enrollmentId, certificateCode]
+  // ========================================
+  // AUTO ISSUE CERTIFICATE IF PROGRESS 100%
+  // ========================================
+  if (
+    totalContents > 0 &&
+    completedCount === totalContents
+  ) {
+    const certificateResult = await pool.query(
+      `SELECT id
+       FROM certificates
+       WHERE enrollment_id = $1
+       LIMIT 1`,
+      [enrollmentId]
     );
+
+    if (certificateResult.rows.length === 0) {
+      const certificateCode = `NDH-${randomUUID().toUpperCase()}`;
+
+      await pool.query(
+        `INSERT INTO certificates (
+           enrollment_id,
+           certificate_code,
+           student_name,
+           course_title
+         )
+         SELECT
+           e.id,
+           $2,
+           COALESCE(
+             NULLIF(BTRIM(u.display_name), ''),
+             'Nama belum diatur'
+           ),
+           c.title
+         FROM enrollments e
+         JOIN users u ON u.id = e.student_id
+         JOIN courses c ON c.id = e.course_id
+         WHERE e.id = $1
+         ON CONFLICT (enrollment_id) DO NOTHING`,
+        [enrollmentId, certificateCode]
+      );
+    }
   }
-}
 
   // ========================================
   // RENDER
@@ -589,7 +608,7 @@ if (
                           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                             <div className="flex items-center gap-2">
                               <span className="font-semibold text-[#0B1F3A]">
-                                {comment.username}
+                                {comment.display_name}
                               </span>
 
                               {comment.role === "teacher" && (

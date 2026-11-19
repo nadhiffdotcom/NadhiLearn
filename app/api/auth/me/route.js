@@ -20,9 +20,11 @@ export async function GET(request) {
     user: {
       id: result.user.id,
       username: result.user.username,
+      display_name: result.user.display_name,
       email: result.user.email,
       role: result.user.role,
       teacherStatus: result.user.teacher_status,
+      approvedAt: result.user.approved_at,
     },
   });
 }

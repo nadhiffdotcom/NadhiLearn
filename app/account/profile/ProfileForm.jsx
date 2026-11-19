@@ -6,6 +6,9 @@ import { authFetch } from "@/lib/auth-client";
 
 export default function ProfileForm({ user, overview = {} }) {
   const [username, setUsername] = useState(user.username);
+  const [name, setName] = useState(
+    user.display_name || user.username
+  );
   const [email, setEmail] = useState(user.email);
 
   const [currentPassword, setCurrentPassword] = useState("");
@@ -41,6 +44,16 @@ export default function ProfileForm({ user, overview = {} }) {
     setMessage("");
     setSuccess(false);
 
+    if (!name.trim()) {
+      setMessage("Name wajib diisi.");
+      return;
+    }
+
+    if (name.trim().length > 100) {
+      setMessage("Name maksimal 100 karakter.");
+      return;
+    }
+
     if (newPassword && newPassword !== confirmPassword) {
       setMessage("Konfirmasi password baru tidak cocok.");
       return;
@@ -61,6 +74,7 @@ export default function ProfileForm({ user, overview = {} }) {
         },
         body: JSON.stringify({
           username,
+          display_name: name.trim(),
           email,
           currentPassword,
           newPassword,
@@ -92,6 +106,7 @@ export default function ProfileForm({ user, overview = {} }) {
       setMessage(data.message || "Pengaturan akun berhasil diperbarui.");
 
       setUsername(data.user.username);
+      setName(data.user.display_name || data.user.username);
       setEmail(data.user.email);
 
       setCurrentPassword("");
@@ -350,6 +365,23 @@ export default function ProfileForm({ user, overview = {} }) {
             className={inputClass}
             minLength={3}
             maxLength={50}
+            required
+          />
+        </div>
+
+        {/* NAME */}
+        <div className="mb-6">
+          <label className="mb-2 block font-semibold">
+            Name
+          </label>
+
+          <input
+            type="text"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            className={inputClass}
+            maxLength={100}
+            placeholder="Masukkan nama lengkap"
             required
           />
         </div>

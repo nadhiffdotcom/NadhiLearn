@@ -29,6 +29,11 @@ export async function PUT(request) {
         ? body.username.trim()
         : "";
 
+    const displayName =
+      typeof body.display_name === "string"
+        ? body.display_name.trim()
+        : "";
+
     const email =
       typeof body.email === "string"
         ? body.email.trim().toLowerCase()
@@ -40,6 +45,7 @@ export async function PUT(request) {
     // 3. Validasi input
     if (
       !username ||
+      !displayName ||
       !email ||
       typeof currentPassword !== "string" ||
       !currentPassword
@@ -58,6 +64,16 @@ export async function PUT(request) {
         {
           success: false,
           message: "Username harus terdiri dari 3–50 karakter.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (displayName.length < 1 || displayName.length > 100) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Name wajib diisi dan maksimal 100 karakter.",
         },
         { status: 400 }
       );
@@ -88,7 +104,7 @@ export async function PUT(request) {
 
     // 4. Ambil pengguna berdasarkan token tab aktif
     const userResult = await pool.query(
-      `SELECT id, username, email, password, role
+      `SELECT id, username, display_name, email, password, role
        FROM users
        WHERE id = $1
        LIMIT 1`,
@@ -158,12 +174,19 @@ export async function PUT(request) {
       `UPDATE users
        SET
          username = $1,
-         email = $2,
-         password = $3,
+         display_name = $2,
+         email = $3,
+         password = $4,
          updated_at = NOW()
-       WHERE id = $4
-       RETURNING id, username, email, role`,
-      [username, email, hashedPassword, user.id]
+       WHERE id = $5
+       RETURNING id, username, display_name, email, role`,
+      [
+        username,
+        displayName,
+        email,
+        hashedPassword,
+        user.id,
+      ]
     );
 
     const updatedUser = updateResult.rows[0];
@@ -175,6 +198,7 @@ export async function PUT(request) {
       user: {
         id: updatedUser.id,
         username: updatedUser.username,
+        display_name: updatedUser.display_name,
         email: updatedUser.email,
         role: updatedUser.role,
       },
