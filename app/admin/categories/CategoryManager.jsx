@@ -332,45 +332,46 @@ export default function CategoryManager({ initialCategories }) {
                 </table>
               </div>
 
-              {/* PAGINATION */}
-              <div className="flex flex-col gap-4 border-t border-gray-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-gray-600">
-                  Menampilkan {startIndex + 1}–{endIndex} dari{" "}
-                  {categories.length} kategori
-                </p>
+             
+            {/* PAGINATION */}
+            <div className="flex flex-col gap-4 border-t border-gray-200 px-3 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+              <p className="text-center text-sm text-gray-600 sm:text-left">
+                Menampilkan {startIndex + 1}–{endIndex} dari{" "}
+                {categories.length} kategori
+              </p>
 
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCurrentPage((previous) =>
-                        Math.max(previous - 1, 1)
-                      )
-                    }
-                    disabled={safePage === 1}
-                    className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    Sebelumnya
-                  </button>
+              <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1 sm:w-auto sm:gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCurrentPage((previous) =>
+                      Math.max(previous - 1, 1)
+                    )
+                  }
+                  disabled={safePage === 1}
+                  className="min-w-0 whitespace-nowrap rounded-lg border border-gray-300 px-1 py-2 text-[11px] font-semibold text-[#0B1F3A] transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto sm:px-4 sm:text-sm"
+                >
+                  Sebelumnya
+                </button>
 
-                  <span className="px-2 text-sm font-semibold">
-                    Halaman {safePage} dari {totalPages}
-                  </span>
+                <span className="whitespace-nowrap px-0.5 text-center text-xs font-semibold text-[#0B1F3A] sm:px-2 sm:text-sm">
+                  {safePage} / {totalPages}
+                </span>
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCurrentPage((previous) =>
-                        Math.min(previous + 1, totalPages)
-                      )
-                    }
-                    disabled={safePage === totalPages}
-                    className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    Selanjutnya
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCurrentPage((previous) =>
+                      Math.min(previous + 1, totalPages)
+                    )
+                  }
+                  disabled={safePage === totalPages}
+                  className="min-w-0 whitespace-nowrap rounded-lg border border-gray-300 px-1 py-2 text-[11px] font-semibold text-[#0B1F3A] transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto sm:px-4 sm:text-sm"
+                >
+                  Selanjutnya
+                </button>
               </div>
+            </div>
             </>
           )}
         </div>
