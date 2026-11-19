@@ -1,38 +1,44 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
 export default function PublicCourseDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id;
 
   const [course, setCourse] = useState(null);
+  const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [enrolling, setEnrolling] = useState(false);
   const [error, setError] = useState("");
 
+  // ========================================
+  // GET COURSE DETAIL
+  // ========================================
   useEffect(() => {
     let active = true;
 
     async function loadCourse() {
       try {
-        const response = await fetch(`/api/home/courses`);
+        const response = await fetch(
+          `/api/home/courses?id=${encodeURIComponent(id)}`,
+          { credentials: "same-origin" }
+        );
+
         const data = await response.json();
 
         if (!response.ok || !data.success) {
-          throw new Error("Gagal mengambil data course.");
-        }
-
-        const foundCourse = data.courses?.find(
-          (item) => String(item.id) === String(id)
-        );
-
-        if (!foundCourse) {
-          throw new Error("Course tidak ditemukan.");
+          throw new Error(
+            data.message || "Gagal mengambil data course."
+          );
         }
 
         if (active) {
-          setCourse(foundCourse);
+          setCourse(data.course);
+          setUserRole(data.userRole);
         }
       } catch (err) {
         if (active) {
@@ -54,6 +60,44 @@ export default function PublicCourseDetailPage() {
     };
   }, [id]);
 
+  // ========================================
+  // ENROLL COURSE
+  // ========================================
+  async function handleEnroll() {
+    try {
+      setEnrolling(true);
+      setError("");
+
+      const response = await fetch("/api/home/courses", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          course_id: Number(id),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data.message || "Gagal mengikuti course."
+        );
+      }
+
+      router.push(`/student/courses/${id}`);
+      router.refresh();
+    } catch (err) {
+      setError(err.message || "Gagal mengikuti course.");
+      setEnrolling(false);
+    }
+  }
+
+  // ========================================
+  // LOADING
+  // ========================================
   if (loading) {
     return (
       <main className="min-h-screen bg-[#0B1F3A] p-10 text-white">
@@ -62,12 +106,13 @@ export default function PublicCourseDetailPage() {
     );
   }
 
-  if (error || !course) {
+  // ========================================
+  // ERROR
+  // ========================================
+  if (error && !course) {
     return (
       <main className="min-h-screen bg-[#0B1F3A] p-10 text-white">
-        <p className="text-center text-red-400">
-          {error || "Course tidak ditemukan."}
-        </p>
+        <p className="text-center text-red-400">{error}</p>
 
         <div className="mt-6 text-center">
           <a href="/#courses" className="underline">
@@ -78,6 +123,24 @@ export default function PublicCourseDetailPage() {
     );
   }
 
+  if (!course) return null;
+
+  const totalContents = Number(course.total_contents) || 0;
+  const completedContents =
+    Number(course.completed_contents) || 0;
+
+  const progress =
+    totalContents > 0
+      ? Math.round(
+          (completedContents / totalContents) * 100
+        )
+      : 0;
+
+  const isEnrolled = course.is_enrolled === true;
+
+  // ========================================
+  // RENDER
+  // ========================================
   return (
     <main className="min-h-screen bg-[#0B1F3A] px-6 py-16 text-white">
       <div className="mx-auto max-w-4xl">
@@ -135,32 +198,104 @@ export default function PublicCourseDetailPage() {
             </div>
           </div>
 
-          <div className="mt-10 rounded-xl bg-[#0B1F3A] p-6 text-white">
-            <h2 className="text-xl font-bold">
-              Tertarik mengikuti course ini?
-            </h2>
+          {/* ========================================
+              GUEST: LOGIN / SIGN UP
+          ======================================== */}
+          {!userRole && (
+            <div className="mt-10 rounded-xl bg-[#0B1F3A] p-6 text-white">
+              <h2 className="text-xl font-bold">
+                Tertarik mengikuti course ini?
+              </h2>
 
-            <p className="mt-3 leading-7 text-white/80">
-              Login atau daftar sebagai Student untuk bergabung dengan
-              course dan mulai belajar.
-            </p>
+              <p className="mt-3 leading-7 text-white/80">
+                Login atau daftar sebagai Student untuk bergabung
+                dengan course dan mulai belajar.
+              </p>
 
-            <div className="mt-6 flex flex-wrap gap-3">
+              <div className="mt-6 flex flex-wrap gap-3">
+                <a
+                  href="/login"
+                  className="rounded-lg bg-white px-6 py-3 font-semibold text-[#0B1F3A] transition hover:bg-gray-200"
+                >
+                  Login to Enroll
+                </a>
+
+                <a
+                  href="/register"
+                  className="rounded-lg border border-white px-6 py-3 font-semibold transition hover:bg-white hover:text-[#0B1F3A]"
+                >
+                  Sign Up
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* ========================================
+              STUDENT: ALREADY ENROLLED
+          ======================================== */}
+          {userRole === "student" && isEnrolled && (
+            <div className="mt-10 rounded-xl bg-[#0B1F3A] p-6 text-white">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-xl font-bold">
+                  Progress Belajar
+                </h2>
+
+                <span className="text-lg font-bold">
+                  {progress}%
+                </span>
+              </div>
+
+              <div className="mt-4 h-3 overflow-hidden rounded-full bg-white/20">
+                <div
+                  className="h-full rounded-full bg-green-400 transition-all"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+
+              <p className="mt-3 text-sm text-white/80">
+                {completedContents} dari {totalContents} materi telah
+                diselesaikan.
+              </p>
+
               <a
-                href="/login"
-                className="rounded-lg bg-white px-6 py-3 font-semibold text-[#0B1F3A] transition hover:bg-gray-200"
+                href={`/student/courses/${id}`}
+                className="mt-6 block rounded-lg bg-white px-6 py-3 text-center font-semibold text-[#0B1F3A] transition hover:bg-gray-200"
               >
-                Login to Enroll
-              </a>
-
-              <a
-                href="/register"
-                className="rounded-lg border border-white px-6 py-3 font-semibold transition hover:bg-white hover:text-[#0B1F3A]"
-              >
-                Sign Up
+                Continue Learning
               </a>
             </div>
-          </div>
+          )}
+
+          {/* ========================================
+              STUDENT: NOT ENROLLED
+          ======================================== */}
+          {userRole === "student" && !isEnrolled && (
+            <div className="mt-10 rounded-xl bg-[#0B1F3A] p-6 text-white">
+              <h2 className="text-xl font-bold">
+                Bergabung dengan Course Ini
+              </h2>
+
+              <p className="mt-3 leading-7 text-white/80">
+                Ikuti course ini untuk mulai mengakses materi
+                pembelajaran.
+              </p>
+
+              <button
+                type="button"
+                onClick={handleEnroll}
+                disabled={enrolling}
+                className="mt-6 w-full rounded-lg bg-white px-6 py-3 font-semibold text-[#0B1F3A] transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+              >
+                {enrolling ? "Memproses..." : "Enroll"}
+              </button>
+
+              {error && (
+                <p className="mt-3 text-sm text-red-300">
+                  {error}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </main>
