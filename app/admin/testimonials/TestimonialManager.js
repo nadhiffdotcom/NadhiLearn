@@ -11,6 +11,8 @@ const initialForm = {
   is_published: false,
 };
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
 export default function TestimonialManager() {
   const [testimonials, setTestimonials] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,8 +32,29 @@ export default function TestimonialManager() {
   const [selectedId, setSelectedId] = useState(null);
   const [form, setForm] = useState(initialForm);
 
+  // State foto testimonial
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedImagePreview, setSelectedImagePreview] = useState("");
+  const [currentImageUrl, setCurrentImageUrl] = useState("");
+  const [removeImage, setRemoveImage] = useState(false);
+
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  // Preview foto lokal
+  useEffect(() => {
+    if (!selectedImage) {
+      setSelectedImagePreview("");
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(selectedImage);
+    setSelectedImagePreview(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [selectedImage]);
 
   async function loadTestimonials() {
     setLoading(true);
@@ -67,10 +90,19 @@ export default function TestimonialManager() {
     loadTestimonials();
   }, [currentPage, search, status]);
 
+  function resetImageState() {
+    setSelectedImage(null);
+    setSelectedImagePreview("");
+    setCurrentImageUrl("");
+    setRemoveImage(false);
+  }
+
   function openAddModal() {
     setEditMode(false);
     setSelectedId(null);
     setForm({ ...initialForm });
+    resetImageState();
+    setError("");
     setModalOpen(true);
   }
 
@@ -86,6 +118,11 @@ export default function TestimonialManager() {
       is_published: testimonial.is_published,
     });
 
+    setSelectedImage(null);
+    setCurrentImageUrl(testimonial.image_url || "");
+    setRemoveImage(false);
+
+    setError("");
     setModalOpen(true);
   }
 
@@ -93,6 +130,8 @@ export default function TestimonialManager() {
     setModalOpen(false);
     setSelectedId(null);
     setForm({ ...initialForm });
+    resetImageState();
+    setError("");
   }
 
   function handleFormChange(e) {
@@ -104,22 +143,69 @@ export default function TestimonialManager() {
     }));
   }
 
+  // Memilih foto dari laptop
+  function handleImageChange(e) {
+    const file = e.target.files?.[0];
+
+    if (!file) return;
+
+    setError("");
+
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      setError("Format foto harus JPG, PNG, atau WEBP.");
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      setError("Ukuran foto maksimal 5 MB.");
+      e.target.value = "";
+      return;
+    }
+
+    setSelectedImage(file);
+    setRemoveImage(false);
+  }
+
+  // Menghapus foto dari testimonial
+  function handleRemoveImage() {
+    setSelectedImage(null);
+    setRemoveImage(Boolean(currentImageUrl));
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setMessage("");
     setError("");
 
     try {
+      const formData = new FormData();
+
+      formData.append("student_name", form.student_name);
+      formData.append("course_title", form.course_title);
+      formData.append("content", form.content);
+      formData.append("rating", String(Number(form.rating)));
+      formData.append("is_published", String(form.is_published));
+
+      if (editMode) {
+        formData.append("id", String(selectedId));
+      }
+
+      if (selectedImage) {
+        formData.append("image", selectedImage);
+      }
+
+      formData.append("remove_image", String(removeImage));
+
       const response = await fetch("/api/admin/testimonials", {
         method: editMode ? "PUT" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...form,
-          rating: Number(form.rating),
-          ...(editMode ? { id: selectedId } : {}),
-        }),
+        body: formData,
       });
 
       const data = await response.json();
@@ -131,11 +217,8 @@ export default function TestimonialManager() {
       closeModal();
       setMessage(data.message);
 
-      if (!editMode) {
+      if (!editMode && currentPage !== 1) {
         setCurrentPage(1);
-        if (currentPage === 1) {
-          await loadTestimonials();
-        }
       } else {
         await loadTestimonials();
       }
@@ -201,6 +284,9 @@ export default function TestimonialManager() {
     pagination.total
   );
 
+  const displayedImage = selectedImagePreview ||
+    (!removeImage ? currentImageUrl : "");
+
   return (
     <div className="min-h-screen bg-gray-50 p-6 text-[#0B1F3A] md:p-10">
       {/* Header */}
@@ -229,7 +315,7 @@ export default function TestimonialManager() {
         </div>
       )}
 
-      {error && (
+      {error && !modalOpen && (
         <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           {error}
         </div>
@@ -289,13 +375,19 @@ export default function TestimonialManager() {
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan="7" className="px-5 py-12 text-center text-gray-500">
+                  <td
+                    colSpan="7"
+                    className="px-5 py-12 text-center text-gray-500"
+                  >
                     Memuat data testimoni...
                   </td>
                 </tr>
               ) : testimonials.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="px-5 py-12 text-center text-gray-500">
+                  <td
+                    colSpan="7"
+                    className="px-5 py-12 text-center text-gray-500"
+                  >
                     Belum ada testimoni ditemukan.
                   </td>
                 </tr>
@@ -307,10 +399,28 @@ export default function TestimonialManager() {
                     </td>
 
                     <td className="px-5 py-4">
-                      <p className="font-semibold">{item.student_name}</p>
-                      <p className="mt-1 text-xs text-gray-500">
-                        {item.course_title}
-                      </p>
+                      <div className="flex items-center gap-3">
+                        {item.image_url ? (
+                          <img
+                            src={item.image_url}
+                            alt={`Foto ${item.student_name}`}
+                            className="h-11 w-11 shrink-0 rounded-full border border-gray-200 object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#0B1F3A] text-sm font-bold text-white">
+                            {item.student_name?.charAt(0)?.toUpperCase() || "?"}
+                          </div>
+                        )}
+
+                        <div>
+                          <p className="font-semibold">
+                            {item.student_name}
+                          </p>
+                          <p className="mt-1 text-xs text-gray-500">
+                            {item.course_title}
+                          </p>
+                        </div>
+                      </div>
                     </td>
 
                     <td className="max-w-xs px-5 py-4">
@@ -414,6 +524,12 @@ export default function TestimonialManager() {
               </button>
             </div>
 
+            {error && (
+              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="mb-2 block text-sm font-semibold">
@@ -460,6 +576,70 @@ export default function TestimonialManager() {
                   placeholder="Tuliskan testimoni mahasiswa..."
                   className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#0B1F3A]"
                 />
+              </div>
+
+              {/* Upload Foto */}
+              <div>
+                <label className="mb-2 block text-sm font-semibold">
+                  Foto Mahasiswa
+                </label>
+
+                <div className="rounded-lg border border-gray-200 p-4">
+                  {displayedImage ? (
+                    <div className="mb-4 flex items-center gap-4">
+                      <img
+                        src={displayedImage}
+                        alt="Preview foto mahasiswa"
+                        className="h-20 w-20 rounded-full border border-gray-200 object-cover"
+                      />
+
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-gray-700">
+                          {selectedImage
+                            ? selectedImage.name
+                            : "Foto mahasiswa"}
+                        </p>
+                        <p className="mt-1 text-xs text-gray-500">
+                          Preview foto testimonial.
+                        </p>
+
+                        <button
+                          type="button"
+                          onClick={handleRemoveImage}
+                          className="mt-2 text-xs font-semibold text-red-600 hover:text-red-700"
+                        >
+                          Hapus foto
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mb-4 flex items-center gap-4">
+                      <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-[#0B1F3A] text-2xl font-bold text-white">
+                        {form.student_name?.charAt(0)?.toUpperCase() || "?"}
+                      </div>
+
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">
+                          Belum ada foto
+                        </p>
+                        <p className="mt-1 text-xs text-gray-500">
+                          Avatar default akan digunakan.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleImageChange}
+                    className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-[#0B1F3A] file:px-4 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-[#16375f]"
+                  />
+
+                  <p className="mt-2 text-xs text-gray-500">
+                    Format JPG, PNG, atau WEBP. Maksimal 5 MB.
+                  </p>
+                </div>
               </div>
 
               <div>

@@ -374,35 +374,19 @@ export default function HomeClient() {
 
           {/* DESKTOP MENU */}
           <div className="hidden items-center justify-center gap-5 whitespace-nowrap text-sm text-[#0B1F3A] lg:flex xl:gap-7 xl:text-base">
-            <a
-              href="/#home"
-              onClick={() => setActiveMenu("home")}
-              className={menuClass("home")}
-            >
+            <a href="/#home" onClick={() => setActiveMenu("home")} className={menuClass("home")}>
               Home
             </a>
 
-            <a
-              href="/#courses"
-              onClick={() => setActiveMenu("courses")}
-              className={menuClass("courses")}
-            >
+            <a href="/#courses" onClick={() => setActiveMenu("courses")} className={menuClass("courses")}>
               Courses
             </a>
 
-            <a
-              href="/#about"
-              onClick={() => setActiveMenu("about")}
-              className={menuClass("about")}
-            >
+            <a href="/#about" onClick={() => setActiveMenu("about")} className={menuClass("about")}>
               About
             </a>
 
-            <a
-              href="/#testimonials"
-              onClick={() => setActiveMenu("testimonials")}
-              className={menuClass("testimonials")}
-            >
+            <a href="/#testimonials" onClick={() => setActiveMenu("testimonials")} className={menuClass("testimonials")}>
               Student Testimonials
             </a>
           </div>
@@ -410,9 +394,7 @@ export default function HomeClient() {
           {/* DESKTOP LOGIN / LOGOUT */}
           <div className="hidden shrink-0 items-center gap-4 text-sm font-semibold text-[#0B1F3A] lg:flex">
             {checkingUser ? (
-              <span className="text-sm">
-                Memeriksa sesi...
-              </span>
+              <span className="text-sm">Memeriksa sesi...</span>
             ) : user ? (
               <>
                 <span className="max-w-32 truncate">
@@ -428,10 +410,7 @@ export default function HomeClient() {
               </>
             ) : (
               <>
-                <a
-                  href="/login"
-                  className="transition hover:underline"
-                >
+                <a href="/login" className="transition hover:underline">
                   Login
                 </a>
 
@@ -461,60 +440,30 @@ export default function HomeClient() {
         {mobileMenuOpen && (
           <div className="border-t border-[#0B1F3A]/20 bg-white px-5 py-5 lg:hidden">
             <div className="mx-auto flex max-w-7xl flex-col gap-5 text-sm font-medium text-[#0B1F3A]">
-
-              <a
-                href="/#home"
-                onClick={() => {
-                  setActiveMenu("home");
-                  setMobileMenuOpen(false);
-                }}
-                className={menuClass("home")}
-              >
+              <a href="/#home" onClick={() => { setActiveMenu("home"); setMobileMenuOpen(false); }} className={menuClass("home")}>
                 Home
               </a>
 
-              <a
-                href="/#courses"
-                onClick={() => {
-                  setActiveMenu("courses");
-                  setMobileMenuOpen(false);
-                }}
-                className={menuClass("courses")}
-              >
+              <a href="/#courses" onClick={() => { setActiveMenu("courses"); setMobileMenuOpen(false); }} className={menuClass("courses")}>
                 Courses
               </a>
 
-              <a
-                href="/#about"
-                onClick={() => {
-                  setActiveMenu("about");
-                  setMobileMenuOpen(false);
-                }}
-                className={menuClass("about")}
-              >
+              <a href="/#about" onClick={() => { setActiveMenu("about"); setMobileMenuOpen(false); }} className={menuClass("about")}>
                 About
               </a>
 
-              <a
-                href="/#testimonials"
-                onClick={() => {
-                  setActiveMenu("testimonials");
-                  setMobileMenuOpen(false);
-                }}
-                className={menuClass("testimonials")}
-              >
+              <a href="/#testimonials" onClick={() => { setActiveMenu("testimonials"); setMobileMenuOpen(false); }} className={menuClass("testimonials")}>
                 Student Testimonials
               </a>
 
               <div className="border-t border-[#0B1F3A]/20 pt-4">
                 {checkingUser ? (
-                  <span className="text-sm">
-                    Memeriksa sesi...
-                  </span>
+                  <span className="text-sm">Memeriksa sesi...</span>
                 ) : user ? (
                   <div className="flex flex-col gap-3">
                     <span className="font-semibold">
-{user?.display_name || "Nama belum diatur"}                    </span>
+                      {user?.display_name || "Nama belum diatur"}
+                    </span>
 
                     <button
                       onClick={handleLogout}
@@ -525,11 +474,7 @@ export default function HomeClient() {
                   </div>
                 ) : (
                   <div className="flex flex-col gap-3">
-                    <a
-                      href="/login"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="text-center transition hover:underline"
-                    >
+                    <a href="/login" onClick={() => setMobileMenuOpen(false)} className="text-center transition hover:underline">
                       Login
                     </a>
 
@@ -549,10 +494,7 @@ export default function HomeClient() {
       </nav>
 
       {/* HERO SECTION */}
-      <section
-        id="home"
-        className="mx-auto max-w-7xl scroll-mt-28 px-4 pb-16 pt-16 sm:px-6 sm:pb-24 sm:pt-24 md:pb-32 md:pt-28"
-      >
+      <section id="home" className="mx-auto max-w-7xl scroll-mt-28 px-4 pb-16 pt-16 sm:px-6 sm:pb-24 sm:pt-24 md:pb-32 md:pt-28">
         <p className="mb-8 text-xs font-bold uppercase tracking-[0.2em] sm:mb-12 sm:text-sm">
           Online Learning Platform
         </p>
@@ -571,26 +513,16 @@ export default function HomeClient() {
             </p>
 
             <div className="mt-8 flex flex-col gap-3 min-[420px]:flex-row min-[420px]:flex-wrap sm:mt-10">
-              <a
-                href="/#courses"
-                className="rounded-lg bg-white px-6 py-3 text-center text-sm font-bold text-[#0B1F3A] transition hover:bg-[#0B1F3A] hover:text-white hover:outline hover:outline-1 hover:outline-white sm:px-7 sm:py-4 sm:text-base"
-              >
+              <a href="/#courses" className="rounded-lg bg-white px-6 py-3 text-center text-sm font-bold text-[#0B1F3A] transition hover:bg-[#0B1F3A] hover:text-white hover:outline hover:outline-1 hover:outline-white sm:px-7 sm:py-4 sm:text-base">
                 Explore Courses
               </a>
 
-              <a
-                href="/register"
-                className="rounded-lg bg-white px-6 py-3 text-center text-sm font-bold text-[#0B1F3A] transition hover:bg-[#0B1F3A] hover:text-white hover:outline hover:outline-1 hover:outline-white sm:px-7 sm:py-4 sm:text-base"
-              >
+              <a href="/register" className="rounded-lg bg-white px-6 py-3 text-center text-sm font-bold text-[#0B1F3A] transition hover:bg-[#0B1F3A] hover:text-white hover:outline hover:outline-1 hover:outline-white sm:px-7 sm:py-4 sm:text-base">
                 Become a Teacher
               </a>
 
-              {/* DASHBOARD BUTTON */}
               {!checkingUser && userDashboard && (
-                <a
-                  href={userDashboard.href}
-                  className="rounded-lg bg-white px-6 py-3 text-center text-sm font-bold text-[#0B1F3A] transition hover:bg-[#0B1F3A] hover:text-white hover:outline hover:outline-1 hover:outline-white sm:px-7 sm:py-4 sm:text-base"
-                >
+                <a href={userDashboard.href} className="rounded-lg bg-white px-6 py-3 text-center text-sm font-bold text-[#0B1F3A] transition hover:bg-[#0B1F3A] hover:text-white hover:outline hover:outline-1 hover:outline-white sm:px-7 sm:py-4 sm:text-base">
                   {userDashboard.label}
                 </a>
               )}
@@ -598,68 +530,40 @@ export default function HomeClient() {
           </div>
 
           <div className="flex min-w-0 items-center justify-center lg:justify-end">
-            <img
-              src="/logo-nadhilearn.png"
-              alt="NadhiLearn"
-              className="h-auto w-full max-w-[280px] object-contain sm:max-w-[340px] md:max-w-[400px] lg:max-w-[460px]"
-            />
+            <img src="/logo-nadhilearn.png" alt="NadhiLearn" className="h-auto w-full max-w-[280px] object-contain sm:max-w-[340px] md:max-w-[400px] lg:max-w-[460px]" />
           </div>
         </div>
 
         {/* STATISTICS */}
         <div className="mt-16 grid grid-cols-1 gap-8 border-t border-white/30 pt-8 text-center sm:mt-24 sm:grid-cols-3 sm:gap-10 sm:pt-10 sm:text-left">
           <div>
-            <h2 className="text-3xl font-bold sm:text-4xl">
-              100+
-            </h2>
-            <p className="mt-2 text-sm sm:text-base">
-              Learning Materials
-            </p>
+            <h2 className="text-3xl font-bold sm:text-4xl">100+</h2>
+            <p className="mt-2 text-sm sm:text-base">Learning Materials</p>
           </div>
 
           <div>
-            <h2 className="text-3xl font-bold sm:text-4xl">
-              20+
-            </h2>
-            <p className="mt-2 text-sm sm:text-base">
-              Expert Teachers
-            </p>
+            <h2 className="text-3xl font-bold sm:text-4xl">20+</h2>
+            <p className="mt-2 text-sm sm:text-base">Expert Teachers</p>
           </div>
 
           <div>
-            <h2 className="text-3xl font-bold sm:text-4xl">
-              500+
-            </h2>
-            <p className="mt-2 text-sm sm:text-base">
-              Active Students
-            </p>
+            <h2 className="text-3xl font-bold sm:text-4xl">500+</h2>
+            <p className="mt-2 text-sm sm:text-base">Active Students</p>
           </div>
         </div>
       </section>
 
       {/* COURSES SECTION */}
-      <section
-        id="courses"
-        className="scroll-mt-28 bg-white px-4 py-16 text-[#0B1F3A] sm:px-6 sm:py-24"
-      >
+      <section id="courses" className="scroll-mt-28 bg-white px-4 py-16 text-[#0B1F3A] sm:px-6 sm:py-24">
         <div className="mx-auto max-w-6xl">
-
           <div className="mb-10 sm:mb-12">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] sm:text-sm">
-              Explore Courses
-            </p>
-
-            <h2 className="mt-4 text-3xl font-bold sm:text-4xl">
-              Popular Courses
-            </h2>
-
+            <p className="text-xs font-bold uppercase tracking-[0.2em] sm:text-sm">Explore Courses</p>
+            <h2 className="mt-4 text-3xl font-bold sm:text-4xl">Popular Courses</h2>
             <p className="mt-4 max-w-2xl text-sm leading-7 sm:text-base">
-              Temukan berbagai kelas menarik dan kembangkan
-              kemampuanmu bersama pengajar berpengalaman.
+              Temukan berbagai kelas menarik dan kembangkan kemampuanmu bersama pengajar berpengalaman.
             </p>
           </div>
 
-          {/* SEARCH DAN FILTER */}
           <div className="mb-8 grid grid-cols-1 gap-4 md:mb-10 md:grid-cols-2">
             <input
               type="text"
@@ -674,69 +578,31 @@ export default function HomeClient() {
               onChange={(e) => setCategoryId(e.target.value)}
               className="w-full min-w-0 rounded-lg border border-[#0B1F3A] bg-white px-4 py-3 text-sm text-[#0B1F3A] outline-none focus:ring-2 focus:ring-[#0B1F3A] sm:text-base"
             >
-              <option value="">
-                Semua Kategori
-              </option>
-
+              <option value="">Semua Kategori</option>
               {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
+                <option key={category.id} value={category.id}>{category.name}</option>
               ))}
             </select>
           </div>
 
-          {/* COURSE LIST */}
           {loadingCourses ? (
-            <p className="py-10 text-center text-sm sm:text-base">
-              Memuat course...
-            </p>
+            <p className="py-10 text-center text-sm sm:text-base">Memuat course...</p>
           ) : courseError ? (
-            <p className="py-10 text-center text-sm text-red-600 sm:text-base">
-              {courseError}
-            </p>
+            <p className="py-10 text-center text-sm text-red-600 sm:text-base">{courseError}</p>
           ) : courses.length === 0 ? (
-            <p className="py-10 text-center text-sm sm:text-base">
-              Course tidak ditemukan.
-            </p>
+            <p className="py-10 text-center text-sm sm:text-base">Course tidak ditemukan.</p>
           ) : (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-6 lg:gap-8">
               {courses.map((course, index) => {
-                const isLastRowTwo =
-                  courses.length % 3 === 2 &&
-                  index >= courses.length - 2;
+                const isLastRowTwo = courses.length % 3 === 2 && index >= courses.length - 2;
 
                 return (
-                  <div
-                    key={course.id}
-                    className={`min-w-0 rounded-xl border border-[#0B1F3A] p-5 transition hover:-translate-y-1 sm:p-7 lg:col-span-2 ${
-                      isLastRowTwo
-                        ? index === courses.length - 2
-                          ? "lg:col-start-2"
-                          : "lg:col-start-4"
-                        : ""
-                    }`}
-                  >
-                    <p className="text-xs font-bold uppercase tracking-wider sm:text-sm">
-                      {course.category_name || "Uncategorized"}
-                    </p>
-
-                    <h3 className="mt-4 break-words text-xl font-bold sm:mt-5 sm:text-2xl">
-                      {course.title}
-                    </h3>
-
-                    <p className="mt-4 break-words text-sm sm:text-base">
-                      Teacher: {course.teacher_name || "Belum ditentukan"}
-                    </p>
-
-                    <p className="mt-2 text-sm sm:text-base">
-                      {course.enrollment_count} Students Enrolled
-                    </p>
-
-                    <a
-                      href={`/courses/${course.id}`}
-                      className="mt-6 inline-block rounded-lg bg-[#0B1F3A] px-5 py-3 text-sm font-semibold text-white transition hover:bg-white hover:text-[#0B1F3A] hover:outline hover:outline-1 hover:outline-[#0B1F3A] sm:mt-8 sm:px-6 sm:text-base"
-                    >
+                  <div key={course.id} className={`min-w-0 rounded-xl border border-[#0B1F3A] p-5 transition hover:-translate-y-1 sm:p-7 lg:col-span-2 ${isLastRowTwo ? index === courses.length - 2 ? "lg:col-start-2" : "lg:col-start-4" : ""}`}>
+                    <p className="text-xs font-bold uppercase tracking-wider sm:text-sm">{course.category_name || "Uncategorized"}</p>
+                    <h3 className="mt-4 break-words text-xl font-bold sm:mt-5 sm:text-2xl">{course.title}</h3>
+                    <p className="mt-4 break-words text-sm sm:text-base">Teacher: {course.teacher_name || "Belum ditentukan"}</p>
+                    <p className="mt-2 text-sm sm:text-base">{course.enrollment_count} Students Enrolled</p>
+                    <a href={`/courses/${course.id}`} className="mt-6 inline-block rounded-lg bg-[#0B1F3A] px-5 py-3 text-sm font-semibold text-white transition hover:bg-white hover:text-[#0B1F3A] hover:outline hover:outline-1 hover:outline-[#0B1F3A] sm:mt-8 sm:px-6 sm:text-base">
                       View Course
                     </a>
                   </div>
@@ -748,63 +614,38 @@ export default function HomeClient() {
       </section>
 
       {/* ABOUT SECTION */}
-      <section
-        id="about"
-        className="scroll-mt-28 bg-[#0B1F3A] px-4 py-20 text-white sm:px-6 sm:py-28"
-      >
+      <section id="about" className="scroll-mt-28 bg-[#0B1F3A] px-4 py-20 text-white sm:px-6 sm:py-28">
         <div className="mx-auto max-w-6xl">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] sm:text-sm">
-            About NadhiLearn
-          </p>
-
+          <p className="text-xs font-bold uppercase tracking-[0.2em] sm:text-sm">About NadhiLearn</p>
           <h2 className="mt-6 max-w-3xl text-3xl font-bold leading-tight sm:mt-7 sm:text-4xl md:text-5xl">
             A better way to learn, grow, and share knowledge.
           </h2>
-
           <p className="mt-7 max-w-4xl text-base leading-8 sm:mt-10 sm:text-lg sm:leading-10">
-            NadhiLearn adalah platform pembelajaran digital yang
-            mempertemukan siswa dan pengajar dalam satu ruang belajar.
-            Temukan materi, ikuti kelas, dan pantau perkembangan belajarmu.
+            NadhiLearn adalah platform pembelajaran digital yang mempertemukan siswa dan pengajar dalam satu ruang belajar. Temukan materi, ikuti kelas, dan pantau perkembangan belajarmu.
           </p>
         </div>
       </section>
 
       {/* STUDENT TESTIMONIALS */}
-      <section
-        id="testimonials"
-        className="scroll-mt-28 bg-white px-4 py-16 text-[#0B1F3A] sm:px-6 sm:py-24"
-      >
+      <section id="testimonials" className="scroll-mt-28 bg-white px-4 py-16 text-[#0B1F3A] sm:px-6 sm:py-24">
         <div className="mx-auto max-w-7xl">
 
           {/* SECTION HEADER */}
           <div className="mb-10 text-center sm:mb-14">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] sm:text-sm">
-              Student Testimonials
-            </p>
-
-            <h2 className="mt-4 text-3xl font-bold sm:text-4xl">
-              Stories From Our Students.
-            </h2>
-
+            <p className="text-xs font-bold uppercase tracking-[0.2em] sm:text-sm">Student Testimonials</p>
+            <h2 className="mt-4 text-3xl font-bold sm:text-4xl">Stories From Our Students.</h2>
             <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 sm:text-base">
-              Pengalaman belajar dan cerita perkembangan siswa
-              bersama NadhiLearn.
+              Pengalaman belajar dan cerita perkembangan siswa bersama NadhiLearn.
             </p>
           </div>
 
           {/* TESTIMONIAL CAROUSEL */}
           {loadingTestimonials ? (
-            <p className="py-10 text-center text-sm">
-              Memuat testimoni...
-            </p>
+            <p className="py-10 text-center text-sm">Memuat testimoni...</p>
           ) : testimonialError ? (
-            <p className="py-10 text-center text-sm text-red-600">
-              {testimonialError}
-            </p>
+            <p className="py-10 text-center text-sm text-red-600">{testimonialError}</p>
           ) : testimonials.length === 0 ? (
-            <p className="py-10 text-center text-sm text-[#0B1F3A]/60">
-              Belum ada testimoni yang dipublikasikan.
-            </p>
+            <p className="py-10 text-center text-sm text-[#0B1F3A]/60">Belum ada testimoni yang dipublikasikan.</p>
           ) : (
             <div
               ref={testimonialTrackRef}
@@ -819,13 +660,25 @@ export default function HomeClient() {
                 >
                   {/* STUDENT PROFILE */}
                   <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#0B1F3A] text-base font-bold text-white sm:h-14 sm:w-14 sm:text-lg">
-                      {testimonial.name
-                        .split(" ")
-                        .map((word) => word[0])
-                        .slice(0, 2)
-                        .join("")}
-                    </div>
+                    {testimonial.image_url ? (
+                      <img
+                        src={testimonial.image_url}
+                        alt={`Foto ${testimonial.name}`}
+                        className="h-12 w-12 shrink-0 rounded-full border border-[#0B1F3A]/10 object-cover sm:h-14 sm:w-14"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#0B1F3A] text-base font-bold text-white sm:h-14 sm:w-14 sm:text-lg">
+                        {(testimonial.name || "?")
+                          .split(" ")
+                          .map((word) => word[0])
+                          .slice(0, 2)
+                          .join("")
+                          .toUpperCase()}
+                      </div>
+                    )}
 
                     <div className="min-w-0">
                       <h3 className="break-words text-base font-bold sm:text-lg">
@@ -839,17 +692,11 @@ export default function HomeClient() {
                   </div>
 
                   {/* RATING */}
-                  <div
-                    className="mt-5 flex gap-1"
-                    aria-label={`${testimonial.rating} dari 5 bintang`}
-                  >
+                  <div className="mt-5 flex gap-1" aria-label={`${testimonial.rating} dari 5 bintang`}>
                     {Array.from(
                       { length: Number(testimonial.rating) },
                       (_, index) => (
-                        <span
-                          key={index}
-                          className="text-lg text-[#0B1F3A]"
-                        >
+                        <span key={index} className="text-lg text-[#0B1F3A]">
                           ★
                         </span>
                       )
@@ -881,61 +728,42 @@ export default function HomeClient() {
           )}
 
           {/* CAROUSEL CONTROLS */}
-          {!loadingTestimonials &&
-            !testimonialError &&
-            testimonials.length > testimonialVisibleCount && (
-              <div className="mt-7 flex items-center justify-center gap-5 sm:mt-9">
+          {!loadingTestimonials && !testimonialError && testimonials.length > testimonialVisibleCount && (
+            <div className="mt-7 flex items-center justify-center gap-5 sm:mt-9">
+              <button
+                type="button"
+                onClick={() => scrollTestimonials(-1)}
+                disabled={activeTestimonial === 0}
+                aria-label="Testimoni sebelumnya"
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-[#0B1F3A]/20 text-xl transition hover:bg-[#0B1F3A] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+              >
+                ←
+              </button>
 
-                {/* PREVIOUS */}
-                <button
-                  type="button"
-                  onClick={() => scrollTestimonials(-1)}
-                  disabled={activeTestimonial === 0}
-                  aria-label="Testimoni sebelumnya"
-                  className="flex h-11 w-11 items-center justify-center rounded-full border border-[#0B1F3A]/20 text-xl transition hover:bg-[#0B1F3A] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
-                >
-                  ←
-                </button>
-
-                {/* INDICATOR */}
-                <div className="flex items-center gap-2">
-                  {Array.from(
-                    { length: maxTestimonialIndex + 1 },
-                    (_, index) => (
-                      <button
-                        key={index}
-                        type="button"
-                        onClick={() => goToTestimonial(index)}
-                        aria-label={`Lihat posisi testimoni ${index + 1}`}
-                        aria-current={
-                          activeTestimonial === index
-                            ? "true"
-                            : undefined
-                        }
-                        className={`h-2 rounded-full transition-all duration-300 ${
-                          activeTestimonial === index
-                            ? "w-10 bg-[#0B1F3A]"
-                            : "w-2 bg-[#0B1F3A]/25 hover:bg-[#0B1F3A]/50"
-                        }`}
-                      />
-                    )
-                  )}
-                </div>
-
-                {/* NEXT */}
-                <button
-                  type="button"
-                  onClick={() => scrollTestimonials(1)}
-                  disabled={
-                    activeTestimonial >= maxTestimonialIndex
-                  }
-                  aria-label="Testimoni berikutnya"
-                  className="flex h-11 w-11 items-center justify-center rounded-full bg-[#0B1F3A] text-xl text-white transition hover:bg-white hover:text-[#0B1F3A] hover:outline hover:outline-1 hover:outline-[#0B1F3A] disabled:cursor-not-allowed disabled:opacity-30"
-                >
-                  →
-                </button>
+              <div className="flex items-center gap-2">
+                {Array.from({ length: maxTestimonialIndex + 1 }, (_, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => goToTestimonial(index)}
+                    aria-label={`Lihat posisi testimoni ${index + 1}`}
+                    aria-current={activeTestimonial === index ? "true" : undefined}
+                    className={`h-2 rounded-full transition-all duration-300 ${activeTestimonial === index ? "w-10 bg-[#0B1F3A]" : "w-2 bg-[#0B1F3A]/25 hover:bg-[#0B1F3A]/50"}`}
+                  />
+                ))}
               </div>
-            )}
+
+              <button
+                type="button"
+                onClick={() => scrollTestimonials(1)}
+                disabled={activeTestimonial >= maxTestimonialIndex}
+                aria-label="Testimoni berikutnya"
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-[#0B1F3A] text-xl text-white transition hover:bg-white hover:text-[#0B1F3A] hover:outline hover:outline-1 hover:outline-[#0B1F3A] disabled:cursor-not-allowed disabled:opacity-30"
+              >
+                →
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
@@ -943,9 +771,7 @@ export default function HomeClient() {
       <footer className="bg-[#0B1F3A] px-6 py-12 text-white">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 md:flex-row">
           <h2 className="text-2xl font-bold">NadhiLearn.</h2>
-          <p className="text-sm text-white/80">
-            © 2026 NadhiLearn. All rights reserved.
-          </p>
+          <p className="text-sm text-white/80">© 2026 NadhiLearn. All rights reserved.</p>
         </div>
       </footer>
     </main>

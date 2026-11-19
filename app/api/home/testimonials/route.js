@@ -12,6 +12,7 @@ export async function GET() {
          course_title AS course,
          content AS message,
          rating,
+         image_url,
          created_at
        FROM testimonials
        WHERE is_published = TRUE

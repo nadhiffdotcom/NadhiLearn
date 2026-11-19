@@ -1,9 +1,26 @@
 
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { randomUUID } from "crypto";
+import path from "path";
+import { mkdir, writeFile, unlink } from "fs/promises";
+
 import pool from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 
+export const runtime = "nodejs";
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const UPLOAD_DIR = path.join(
+  process.cwd(),
+  "public",
+  "uploads",
+  "testimonials"
+);
+
+// ========================================
+// HELPER: CHECK ADMIN
+// ========================================
 async function checkAdmin() {
   const cookieStore = await cookies();
   const token = cookieStore.get("nadhi_admin_token")?.value;
@@ -12,14 +29,154 @@ async function checkAdmin() {
 
   try {
     const decoded = await verifyToken(token);
+
     if (!decoded || decoded.role !== "admin") return null;
+
     return decoded;
   } catch {
     return null;
   }
 }
 
-// GET: Daftar testimoni dengan pencarian dan pagination
+// ========================================
+// HELPER: VALIDASI FILE
+// ========================================
+function getImageExtension(buffer) {
+  // JPEG
+  if (
+    buffer.length >= 3 &&
+    buffer[0] === 0xff &&
+    buffer[1] === 0xd8 &&
+    buffer[2] === 0xff
+  ) {
+    return "jpg";
+  }
+
+  // PNG
+  if (
+    buffer.length >= 8 &&
+    buffer.subarray(0, 8).equals(
+      Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])
+    )
+  ) {
+    return "png";
+  }
+
+  // WEBP
+  if (
+    buffer.length >= 12 &&
+    buffer.toString("ascii", 0, 4) === "RIFF" &&
+    buffer.toString("ascii", 8, 12) === "WEBP"
+  ) {
+    return "webp";
+  }
+
+  return null;
+}
+
+// ========================================
+// HELPER: UPLOAD FOTO
+// ========================================
+async function uploadImage(file) {
+  if (!file || file.size === 0) {
+    return null;
+  }
+
+  if (file.size > MAX_FILE_SIZE) {
+    throw new Error("Ukuran foto maksimal 5 MB.");
+  }
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const extension = getImageExtension(buffer);
+
+  if (!extension) {
+    throw new Error("Format foto harus JPG, PNG, atau WEBP.");
+  }
+
+  await mkdir(UPLOAD_DIR, { recursive: true });
+
+  const filename = `${randomUUID()}.${extension}`;
+  const filepath = path.join(UPLOAD_DIR, filename);
+
+  await writeFile(filepath, buffer, { flag: "wx" });
+
+  return {
+    filename,
+    url: `/uploads/testimonials/${filename}`,
+  };
+}
+
+// ========================================
+// HELPER: HAPUS FOTO LAMA
+// ========================================
+async function deleteImage(imageUrl) {
+  if (
+    typeof imageUrl !== "string" ||
+    !imageUrl.startsWith("/uploads/testimonials/")
+  ) {
+    return;
+  }
+
+  const filename = path.basename(imageUrl);
+  const filepath = path.join(UPLOAD_DIR, filename);
+
+  try {
+    await unlink(filepath);
+  } catch (error) {
+    if (error.code !== "ENOENT") {
+      console.error("DELETE TESTIMONIAL IMAGE ERROR:", error);
+    }
+  }
+}
+
+// ========================================
+// HELPER: BACA FORM DATA
+// ========================================
+async function getFormData(request) {
+  const formData = await request.formData();
+
+  return {
+    id: Number(formData.get("id")),
+    studentName: String(formData.get("student_name") || "").trim(),
+    courseTitle: String(formData.get("course_title") || "").trim(),
+    content: String(formData.get("content") || "").trim(),
+    rating: Number(formData.get("rating") || 5),
+    isPublished: formData.get("is_published") === "true",
+    image: formData.get("image"),
+    removeImage: formData.get("remove_image") === "true",
+  };
+}
+
+// ========================================
+// HELPER: VALIDASI DATA
+// ========================================
+function validateTestimonial(data, isEdit = false) {
+  if (
+    (isEdit && (!Number.isSafeInteger(data.id) || data.id <= 0)) ||
+    !data.studentName ||
+    !data.courseTitle ||
+    !data.content
+  ) {
+    return "Data testimoni tidak lengkap.";
+  }
+
+  if (
+    data.studentName.length > 100 ||
+    data.courseTitle.length > 200
+  ) {
+    return "Nama atau judul kursus terlalu panjang.";
+  }
+
+  if (!Number.isInteger(data.rating) || data.rating < 1 || data.rating > 5) {
+    return "Rating harus antara 1 sampai 5.";
+  }
+
+  return null;
+}
+
+// ========================================
+// GET: DAFTAR TESTIMONI
+// ========================================
 export async function GET(request) {
   try {
     const admin = await checkAdmin();
@@ -32,7 +189,12 @@ export async function GET(request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+
+    const page = Math.max(
+      1,
+      parseInt(searchParams.get("page") || "1", 10)
+    );
+
     const search = (searchParams.get("search") || "").trim();
     const status = searchParams.get("status") || "";
 
@@ -44,9 +206,13 @@ export async function GET(request) {
     }
 
     const limit = 10;
+
     const publishedFilter =
-      status === "published" ? true :
-      status === "draft" ? false : null;
+      status === "published"
+        ? true
+        : status === "draft"
+          ? false
+          : null;
 
     const countResult = await pool.query(
       `SELECT COUNT(*) AS total
@@ -74,6 +240,7 @@ export async function GET(request) {
          content,
          rating,
          is_published,
+         image_url,
          created_at,
          updated_at
        FROM testimonials
@@ -109,8 +276,12 @@ export async function GET(request) {
   }
 }
 
-// POST: Tambah testimoni
+// ========================================
+// POST: TAMBAH TESTIMONI
+// ========================================
 export async function POST(request) {
+  let uploadedImage = null;
+
   try {
     const admin = await checkAdmin();
 
@@ -121,46 +292,39 @@ export async function POST(request) {
       );
     }
 
-    const body = await request.json();
+    const data = await getFormData(request);
+    const validationError = validateTestimonial(data);
 
-    const studentName = body.student_name?.trim();
-    const courseTitle = body.course_title?.trim();
-    const content = body.content?.trim();
-    const rating = Number(body.rating ?? 5);
-    const isPublished = body.is_published === true;
-
-    if (!studentName || !courseTitle || !content) {
+    if (validationError) {
       return NextResponse.json(
-        { success: false, message: "Semua field wajib diisi." },
+        { success: false, message: validationError },
         { status: 400 }
       );
     }
 
-    if (studentName.length > 100 || courseTitle.length > 200) {
-      return NextResponse.json(
-        { success: false, message: "Nama atau judul kursus terlalu panjang." },
-        { status: 400 }
-      );
-    }
-
-    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
-      return NextResponse.json(
-        { success: false, message: "Rating harus antara 1 sampai 5." },
-        { status: 400 }
-      );
+    if (data.image instanceof File && data.image.size > 0) {
+      uploadedImage = await uploadImage(data.image);
     }
 
     const result = await pool.query(
       `INSERT INTO testimonials (
-        student_name,
-        course_title,
-        content,
-        rating,
-        is_published
-      )
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING *`,
-      [studentName, courseTitle, content, rating, isPublished]
+         student_name,
+         course_title,
+         content,
+         rating,
+         is_published,
+         image_url
+       )
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING *`,
+      [
+        data.studentName,
+        data.courseTitle,
+        data.content,
+        data.rating,
+        data.isPublished,
+        uploadedImage?.url || null,
+      ]
     );
 
     return NextResponse.json(
@@ -172,17 +336,34 @@ export async function POST(request) {
       { status: 201 }
     );
   } catch (error) {
+    if (uploadedImage) {
+      await deleteImage(uploadedImage.url);
+    }
+
     console.error("POST TESTIMONIAL ERROR:", error);
 
+    const isValidationError =
+      error.message?.includes("Ukuran foto") ||
+      error.message?.includes("Format foto");
+
     return NextResponse.json(
-      { success: false, message: "Gagal menambahkan testimoni." },
-      { status: 500 }
+      {
+        success: false,
+        message: isValidationError
+          ? error.message
+          : "Gagal menambahkan testimoni.",
+      },
+      { status: isValidationError ? 400 : 500 }
     );
   }
 }
 
-// PUT: Edit testimoni
+// ========================================
+// PUT: EDIT TESTIMONI
+// ========================================
 export async function PUT(request) {
+  let uploadedImage = null;
+
   try {
     const admin = await checkAdmin();
 
@@ -193,40 +374,39 @@ export async function PUT(request) {
       );
     }
 
-    const body = await request.json();
+    const data = await getFormData(request);
+    const validationError = validateTestimonial(data, true);
 
-    const id = Number(body.id);
-    const studentName = body.student_name?.trim();
-    const courseTitle = body.course_title?.trim();
-    const content = body.content?.trim();
-    const rating = Number(body.rating);
-    const isPublished = body.is_published === true;
-
-    if (
-      !Number.isInteger(id) ||
-      id <= 0 ||
-      !studentName ||
-      !courseTitle ||
-      !content
-    ) {
+    if (validationError) {
       return NextResponse.json(
-        { success: false, message: "Data testimoni tidak lengkap." },
+        { success: false, message: validationError },
         { status: 400 }
       );
     }
 
-    if (studentName.length > 100 || courseTitle.length > 200) {
+    const existingResult = await pool.query(
+      `SELECT image_url
+       FROM testimonials
+       WHERE id = $1
+       LIMIT 1`,
+      [data.id]
+    );
+
+    if (existingResult.rows.length === 0) {
       return NextResponse.json(
-        { success: false, message: "Nama atau judul kursus terlalu panjang." },
-        { status: 400 }
+        { success: false, message: "Testimoni tidak ditemukan." },
+        { status: 404 }
       );
     }
 
-    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
-      return NextResponse.json(
-        { success: false, message: "Rating harus antara 1 sampai 5." },
-        { status: 400 }
-      );
+    const oldImage = existingResult.rows[0].image_url;
+    let imageUrl = oldImage;
+
+    if (data.image instanceof File && data.image.size > 0) {
+      uploadedImage = await uploadImage(data.image);
+      imageUrl = uploadedImage.url;
+    } else if (data.removeImage) {
+      imageUrl = null;
     }
 
     const result = await pool.query(
@@ -237,17 +417,25 @@ export async function PUT(request) {
          content = $3,
          rating = $4,
          is_published = $5,
+         image_url = $6,
          updated_at = NOW()
-       WHERE id = $6
+       WHERE id = $7
        RETURNING *`,
-      [studentName, courseTitle, content, rating, isPublished, id]
+      [
+        data.studentName,
+        data.courseTitle,
+        data.content,
+        data.rating,
+        data.isPublished,
+        imageUrl,
+        data.id,
+      ]
     );
 
-    if (result.rowCount === 0) {
-      return NextResponse.json(
-        { success: false, message: "Testimoni tidak ditemukan." },
-        { status: 404 }
-      );
+    if (uploadedImage && oldImage) {
+      await deleteImage(oldImage);
+    } else if (data.removeImage && oldImage) {
+      await deleteImage(oldImage);
     }
 
     return NextResponse.json({
@@ -256,16 +444,31 @@ export async function PUT(request) {
       testimonial: result.rows[0],
     });
   } catch (error) {
+    if (uploadedImage) {
+      await deleteImage(uploadedImage.url);
+    }
+
     console.error("PUT TESTIMONIAL ERROR:", error);
 
+    const isValidationError =
+      error.message?.includes("Ukuran foto") ||
+      error.message?.includes("Format foto");
+
     return NextResponse.json(
-      { success: false, message: "Gagal memperbarui testimoni." },
-      { status: 500 }
+      {
+        success: false,
+        message: isValidationError
+          ? error.message
+          : "Gagal memperbarui testimoni.",
+      },
+      { status: isValidationError ? 400 : 500 }
     );
   }
 }
 
-// DELETE: Hapus testimoni
+// ========================================
+// DELETE: HAPUS TESTIMONI
+// ========================================
 export async function DELETE(request) {
   try {
     const admin = await checkAdmin();
@@ -280,7 +483,7 @@ export async function DELETE(request) {
     const body = await request.json();
     const id = Number(body.id);
 
-    if (!Number.isInteger(id) || id <= 0) {
+    if (!Number.isSafeInteger(id) || id <= 0) {
       return NextResponse.json(
         { success: false, message: "ID testimoni tidak valid." },
         { status: 400 }
@@ -288,7 +491,9 @@ export async function DELETE(request) {
     }
 
     const result = await pool.query(
-      "DELETE FROM testimonials WHERE id = $1 RETURNING id",
+      `DELETE FROM testimonials
+       WHERE id = $1
+       RETURNING id, image_url`,
       [id]
     );
 
@@ -298,6 +503,8 @@ export async function DELETE(request) {
         { status: 404 }
       );
     }
+
+    await deleteImage(result.rows[0].image_url);
 
     return NextResponse.json({
       success: true,
