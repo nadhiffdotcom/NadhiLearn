@@ -11,6 +11,7 @@ const menuItems = [
   { label: "User Management", href: "/admin/users", icon: "♙" },
   { label: "Course Management", href: "/admin/courses", icon: "▤" },
   { label: "Category Management", href: "/admin/categories", icon: "▣" },
+  { label: "Testimonials", href: "/admin/testimonials", icon: "✦" },
   { label: "Settings", href: "/account/profile", icon: "⚙" },
 ];
 
@@ -71,7 +72,7 @@ export default function AdminSidebar() {
         {renderMenu()}
       </nav>
 
-        <div className="shrink-0 border-t border-gray-200 p-4">
+      <div className="shrink-0 border-t border-gray-200 p-4">
         <div className="mb-3 rounded-lg bg-gray-50 px-4 py-3">
           <p className="text-xs text-gray-500">Login sebagai</p>
           <p className="font-semibold">Administrator</p>
@@ -81,7 +82,7 @@ export default function AdminSidebar() {
           <LogoutButton />
         </div>
       </div>
-          </>
+    </>
   );
 
   return (
