@@ -452,38 +452,40 @@ export default function ContentManager() {
           </table>
         </div>
 
-        {/* PAGINATION */}
-        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-gray-200 px-6 py-5">
+                  {/* PAGINATION */}
+          <div className="flex flex-col gap-4 border-t border-gray-200 px-3 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
 
-          <p className="text-sm text-gray-600">
-            Menampilkan {firstNumber}-{lastNumber} dari{" "}
-            {pagination.total || 0} materi
-          </p>
+            <p className="text-center text-sm text-gray-600 sm:text-left">
+              Menampilkan {firstNumber}-{lastNumber} dari{" "}
+              {pagination.total || 0} materi
+            </p>
 
-          <div className="flex items-center gap-3">
-            <button
-              disabled={page <= 1 || loading}
-              onClick={() => setPage((previous) => previous - 1)}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-[#0B1F3A] disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Sebelumnya
-            </button>
+            <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1 sm:w-auto sm:gap-2">
 
-            <span className="text-sm font-semibold text-[#0B1F3A]">
-              {page} / {Math.max(1, pagination.totalPages || 0)}
-            </span>
+              <button
+                disabled={page <= 1 || loading}
+                onClick={() => setPage((previous) => previous - 1)}
+                className="min-w-0 whitespace-nowrap rounded-lg border border-gray-300 px-1 py-2 text-[11px] font-semibold text-[#0B1F3A] disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto sm:px-4 sm:text-sm"
+              >
+                Sebelumnya
+              </button>
 
-            <button
-              disabled={
-                page >= (pagination.totalPages || 1) || loading
-              }
-              onClick={() => setPage((previous) => previous + 1)}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-[#0B1F3A] disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Selanjutnya
-            </button>
+              <span className="whitespace-nowrap px-0.5 text-center text-xs font-semibold text-[#0B1F3A] sm:px-2 sm:text-sm">
+                {page} / {Math.max(1, pagination.totalPages || 0)}
+              </span>
+
+              <button
+                disabled={
+                  page >= (pagination.totalPages || 1) || loading
+                }
+                onClick={() => setPage((previous) => previous + 1)}
+                className="min-w-0 whitespace-nowrap rounded-lg border border-gray-300 px-1 py-2 text-[11px] font-semibold text-[#0B1F3A] disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto sm:px-4 sm:text-sm"
+              >
+                Selanjutnya
+              </button>
+
+            </div>
           </div>
-        </div>
       </div>
 
       {/* ADD / EDIT FORM */}
