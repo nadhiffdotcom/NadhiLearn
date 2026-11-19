@@ -18,7 +18,6 @@ export default function HomeClient() {
   const [loadingCourses, setLoadingCourses] = useState(true);
   const [courseError, setCourseError] = useState("");
 
-  
   // State Student Testimonials
   const testimonialTrackRef = useRef(null);
 
@@ -180,43 +179,48 @@ export default function HomeClient() {
 
   // Menentukan menu aktif berdasarkan posisi scroll halaman.
   useEffect(() => {
-  const updateActiveMenu = () => {
-    const navbar = document.getElementById("main-navbar");
-    const navbarHeight = navbar?.offsetHeight || 0;
-    const activationPoint = navbarHeight + 120;
+    const updateActiveMenu = () => {
+      const navbar = document.getElementById("main-navbar");
+      const navbarHeight = navbar?.offsetHeight || 0;
+      const activationPoint = navbarHeight + 120;
 
-    const sections = [
-      { id: "home", menu: "home" },
-      { id: "courses", menu: "courses" },
-      { id: "about", menu: "about" },
-      { id: "testimonials", menu: "testimonials" },
-    ];
+      const sections = [
+        { id: "home", menu: "home" },
+        { id: "courses", menu: "courses" },
+        { id: "about", menu: "about" },
+        { id: "testimonials", menu: "testimonials" },
+      ];
 
-    let activeSection = "home";
+      let activeSection = "home";
 
-    sections.forEach((section) => {
-      const element = document.getElementById(section.id);
+      sections.forEach((section) => {
+        const element = document.getElementById(section.id);
 
-      if (element && element.getBoundingClientRect().top <= activationPoint) {
-        activeSection = section.menu;
-      }
+        if (
+          element &&
+          element.getBoundingClientRect().top <= activationPoint
+        ) {
+          activeSection = section.menu;
+        }
+      });
+
+      setActiveMenu(activeSection);
+    };
+
+    updateActiveMenu();
+
+    window.addEventListener("scroll", updateActiveMenu, {
+      passive: true,
     });
+    window.addEventListener("resize", updateActiveMenu);
+    window.addEventListener("hashchange", updateActiveMenu);
 
-    setActiveMenu(activeSection);
-  };
-
-  updateActiveMenu();
-
-  window.addEventListener("scroll", updateActiveMenu, { passive: true });
-  window.addEventListener("resize", updateActiveMenu);
-  window.addEventListener("hashchange", updateActiveMenu);
-
-  return () => {
-    window.removeEventListener("scroll", updateActiveMenu);
-    window.removeEventListener("resize", updateActiveMenu);
-    window.removeEventListener("hashchange", updateActiveMenu);
-  };
-}, []);
+    return () => {
+      window.removeEventListener("scroll", updateActiveMenu);
+      window.removeEventListener("resize", updateActiveMenu);
+      window.removeEventListener("hashchange", updateActiveMenu);
+    };
+  }, []);
 
   // Menyesuaikan jumlah kartu yang terlihat berdasarkan ukuran layar.
   useEffect(() => {
@@ -401,15 +405,6 @@ export default function HomeClient() {
             >
               Student Testimonials
             </a>
-
-            {userDashboard && (
-              <a
-                href={userDashboard.href}
-                className="transition hover:font-bold"
-              >
-                {userDashboard.label}
-              </a>
-            )}
           </div>
 
           {/* DESKTOP LOGIN / LOGOUT */}
@@ -511,16 +506,6 @@ export default function HomeClient() {
                 Student Testimonials
               </a>
 
-              {userDashboard && (
-                <a
-                  href={userDashboard.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="transition hover:font-bold"
-                >
-                  {userDashboard.label}
-                </a>
-              )}
-
               <div className="border-t border-[#0B1F3A]/20 pt-4">
                 {checkingUser ? (
                   <span className="text-sm">
@@ -596,10 +581,20 @@ export default function HomeClient() {
 
               <a
                 href="/register"
-                className="rounded-lg border border-white px-6 py-3 text-center text-sm font-bold text-white transition hover:bg-white hover:text-[#0B1F3A] sm:px-7 sm:py-4 sm:text-base"
+                className="rounded-lg bg-white px-6 py-3 text-center text-sm font-bold text-[#0B1F3A] transition hover:bg-[#0B1F3A] hover:text-white hover:outline hover:outline-1 hover:outline-white sm:px-7 sm:py-4 sm:text-base"
               >
                 Become a Teacher
               </a>
+
+              {/* DASHBOARD BUTTON */}
+              {!checkingUser && userDashboard && (
+                <a
+                  href={userDashboard.href}
+                  className="rounded-lg bg-white px-6 py-3 text-center text-sm font-bold text-[#0B1F3A] transition hover:bg-[#0B1F3A] hover:text-white hover:outline hover:outline-1 hover:outline-white sm:px-7 sm:py-4 sm:text-base"
+                >
+                  {userDashboard.label}
+                </a>
+              )}
             </div>
           </div>
 
@@ -773,7 +768,7 @@ export default function HomeClient() {
             Temukan materi, ikuti kelas, dan pantau perkembangan belajarmu.
           </p>
         </div>
-                </section>
+      </section>
 
       {/* STUDENT TESTIMONIALS */}
       <section
@@ -799,7 +794,6 @@ export default function HomeClient() {
           </div>
 
           {/* TESTIMONIAL CAROUSEL */}
-          
           {loadingTestimonials ? (
             <p className="py-10 text-center text-sm">
               Memuat testimoni...
@@ -948,13 +942,13 @@ export default function HomeClient() {
 
       {/* FOOTER */}
       <footer className="bg-[#0B1F3A] px-6 py-12 text-white">
-    <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 md:flex-row">
-      <h2 className="text-2xl font-bold">NadhiLearn.</h2>
-      <p className="text-sm text-white/80">
-        © 2026 NadhiLearn. All rights reserved.
-      </p>
-    </div>
-  </footer>
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 md:flex-row">
+          <h2 className="text-2xl font-bold">NadhiLearn.</h2>
+          <p className="text-sm text-white/80">
+            © 2026 NadhiLearn. All rights reserved.
+          </p>
+        </div>
+      </footer>
     </main>
   );
 }
