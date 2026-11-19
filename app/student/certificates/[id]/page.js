@@ -74,7 +74,7 @@ export default async function CertificatePage({ params }) {
   const certificate = result.rows[0];
 
   return (
-    <div className="min-h-screen bg-gray-100 px-4 py-8 md:px-8">
+    <div className="min-h-screen bg-gray-100 px-3 py-5 sm:px-4 sm:py-8 md:px-8">
 
       {/* ACTION BUTTONS */}
       <div className="no-print mx-auto mb-6 flex max-w-5xl flex-col justify-between gap-3 sm:flex-row">
@@ -87,21 +87,22 @@ export default async function CertificatePage({ params }) {
         </Link>
 
         <PrintButton />
+
       </div>
 
       {/* CERTIFICATE */}
-      <div className="certificate-paper mx-auto aspect-[297/210] w-full max-w-5xl bg-white p-3 shadow-xl md:p-5">
+      <div className="certificate-paper mx-auto aspect-auto min-h-[720px] w-full max-w-5xl bg-white p-1 shadow-xl sm:p-2 md:aspect-[297/210] md:min-h-0 md:p-5">
 
         {/* OUTER NAVY BORDER */}
-        <div className="flex h-full w-full items-center justify-center border-[3px] border-[#0B1F3A] p-1">
+        <div className="flex min-h-[700px] h-full w-full items-center justify-center border-[3px] border-[#0B1F3A] p-1 md:min-h-0">
 
           {/* INNER BORDER */}
-          <div className="flex h-full w-full flex-col items-center justify-between border border-[#0B1F3A] px-5 py-3 text-center text-[#0B1F3A] md:px-12 md:py-4">
+          <div className="flex min-h-[680px] h-full w-full flex-col items-center justify-between border border-[#0B1F3A] px-2 py-4 text-center text-[#0B1F3A] sm:px-4 sm:py-5 md:min-h-0 md:px-12 md:py-4">
 
             {/* LOGO AND BRAND */}
-            <div className="flex items-center justify-center gap-3">
+            <div className="flex items-center justify-center gap-2 sm:gap-3">
 
-              <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg bg-white p-0.5 md:h-14 md:w-14">
+              <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg bg-white p-0.5 sm:h-10 sm:w-10 md:h-14 md:w-14">
                 <img
                   src="/nadhilearn-logo.png"
                   alt="Logo NadhiLearn"
@@ -109,102 +110,105 @@ export default async function CertificatePage({ params }) {
                 />
               </div>
 
-              <h2 className="text-xl font-bold tracking-wide text-[#0B1F3A] md:text-3xl">
+              <h2 className="text-lg font-bold tracking-wide text-[#0B1F3A] sm:text-xl md:text-3xl">
                 NadhiLearn
               </h2>
 
             </div>
 
             {/* CERTIFICATE TITLE */}
-            <div className="mt-1">
+            <div className="mt-2">
 
-              <p className="text-[9px] font-semibold uppercase tracking-[0.35em] text-[#0B1F3A] md:text-xs">
+              <p className="text-[8px] font-semibold uppercase tracking-[0.25em] text-[#0B1F3A] sm:text-[9px] sm:tracking-[0.35em] md:text-xs">
                 Certificate of Completion
               </p>
 
-              <h1 className="mt-1 text-2xl font-bold uppercase tracking-[0.15em] text-[#0B1F3A] md:text-4xl">
+              <h1 className="mt-1 text-xl font-bold uppercase tracking-[0.15em] text-[#0B1F3A] sm:text-2xl md:text-4xl">
                 Sertifikat
               </h1>
 
             </div>
 
             {/* STUDENT NAME */}
-            <div className="mt-1 w-full">
+            <div className="mt-3 w-full">
 
-              <p className="text-xs text-gray-600 md:text-sm">
+              <p className="text-xs text-gray-600 sm:text-sm">
                 Dengan bangga diberikan kepada
               </p>
 
               <h2
-                className="mt-1 text-4xl leading-tight text-[#0B1F3A] md:text-6xl"
+                className="mt-2 text-3xl leading-tight text-[#0B1F3A] sm:text-4xl md:text-6xl"
                 style={{ fontFamily: "'Great Vibes', cursive" }}
               >
                 {certificate.student_name}
               </h2>
 
-              <div className="mx-auto mt-1 h-px w-2/3 max-w-md bg-[#0B1F3A]" />
+              <div className="mx-auto mt-2 h-px w-2/3 max-w-md bg-[#0B1F3A]" />
 
             </div>
 
             {/* COURSE DESCRIPTION */}
-            <div className="mt-1">
+            <div className="mt-3 w-full">
 
-              <p className="mx-auto max-w-2xl text-xs leading-6 text-gray-600 md:text-sm">
+              <p className="mx-auto max-w-2xl text-xs leading-5 text-gray-600 sm:text-sm sm:leading-6">
                 Telah berhasil menyelesaikan seluruh materi pembelajaran
                 pada course:
               </p>
 
-              <h3 className="mt-1 text-lg font-bold text-[#0B1F3A] md:text-2xl">
+              <h3 className="mt-2 break-words text-base font-bold text-[#0B1F3A] sm:text-lg md:text-2xl">
                 {certificate.course_title}
               </h3>
 
             </div>
 
             {/* ISSUE DATE */}
-            <div className="mt-1">
+            <div className="mt-3">
 
               <p className="text-xs text-gray-600">
                 Diterbitkan pada
               </p>
 
-              <p className="mt-1 text-sm font-semibold text-[#0B1F3A] md:text-base">
+              <p className="mt-1 text-sm font-semibold text-[#0B1F3A] sm:text-base">
                 {formatDate(certificate.issued_at)}
               </p>
 
             </div>
 
             {/* SIGNATURE */}
-            <div className="mt-1 flex flex-col items-center">
-            {/* Area tanda tangan dan nama */}
-            <div className="relative flex h-20 w-64 items-end justify-center md:h-24 md:w-72">
+            <div className="mt-3 flex flex-col items-center">
+
+              {/* SIGNATURE AND NAME */}
+              <div className="relative flex h-20 w-64 items-end justify-center sm:w-72 md:h-24">
+
                 <img
-                src="/nadhilearn-signature.png"
-                alt="Tanda tangan Alisya Nadhifa Raihani"
-                className="absolute bottom-[-52px] z-10 h-32 w-48 object-contain md:bottom-[-56px] md:h-40 md:w-56"
+                  src="/nadhilearn-signature.png"
+                  alt="Tanda tangan Alisya Nadhifa Raihani"
+                  className="absolute bottom-[-52px] z-10 h-32 w-48 object-contain md:bottom-[-56px] md:h-40 md:w-56"
                 />
 
-                {/* Nama di bawah tanda tangan */}
-                <p className="relative z-0 text-xs font-bold text-[#0B1F3A] md:text-sm">
-                Alisya Nadhifa Raihani
+                <p className="relative z-0 text-xs font-bold text-[#0B1F3A] sm:text-sm">
+                  Alisya Nadhifa Raihani
                 </p>
-            </div>
 
-            {/* Garis di bawah nama */}
-            <div className="w-52 border-t border-[#0B1F3A] md:w-60" />
+              </div>
 
-            <p className="mt-1 text-[10px] text-gray-600 md:text-xs">
+              {/* SIGNATURE LINE */}
+              <div className="w-52 border-t border-[#0B1F3A] sm:w-60" />
+
+              <p className="mt-1 text-[10px] text-gray-600 sm:text-xs">
                 Administrator
-            </p>
+              </p>
+
             </div>
 
             {/* CERTIFICATE ID */}
-            <div className="mt-1 border-t border-gray-200 pt-1">
+            <div className="mt-3 w-full border-t border-gray-200 pt-2">
 
-              <p className="text-[8px] text-gray-400 md:text-[9px]">
+              <p className="text-[8px] text-gray-400 sm:text-[9px]">
                 Certificate ID
               </p>
 
-              <p className="mt-0.5 break-all font-mono text-[8px] tracking-wide text-gray-500 md:text-[9px]">
+              <p className="mt-1 break-all font-mono text-[8px] tracking-wide text-gray-500 sm:text-[9px]">
                 {certificate.certificate_code}
               </p>
 
@@ -264,6 +268,12 @@ export default async function CertificatePage({ params }) {
             break-after: avoid !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
+          }
+
+          .certificate-paper > div,
+          .certificate-paper > div > div {
+            height: 100% !important;
+            min-height: 0 !important;
           }
         }
       `}</style>
