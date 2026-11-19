@@ -74,7 +74,7 @@ export default async function CertificatePage({ params }) {
   const certificate = result.rows[0];
 
   return (
-    <div className="min-h-screen bg-gray-100 px-3 py-5 sm:px-4 sm:py-8 md:px-8">
+    <div className="certificate-page min-h-screen bg-gray-100 px-3 py-5 sm:px-4 sm:py-8 md:px-8">
 
       {/* ACTION BUTTONS */}
       <div className="no-print mx-auto mb-6 flex max-w-5xl flex-col justify-between gap-3 sm:flex-row">
@@ -137,10 +137,11 @@ export default async function CertificatePage({ params }) {
               </p>
 
               <h2
-                className="mt-4 text-4xl leading-tight text-[#0B1F3A] sm:text-5xl md:text-7xl"                style={{ fontFamily: "'Great Vibes', cursive" }}
-                 >
-                 {certificate.student_name}
-                 </h2>
+                className="mt-4 text-4xl leading-tight text-[#0B1F3A] sm:text-5xl md:text-7xl"
+                style={{ fontFamily: "'Great Vibes', cursive" }}
+              >
+                {certificate.student_name}
+              </h2>
 
               <div className="mx-auto mt-2 h-px w-2/3 max-w-md bg-[#0B1F3A]" />
 
@@ -174,32 +175,33 @@ export default async function CertificatePage({ params }) {
             </div>
 
             {/* SIGNATURE */}
-                <div className="mt-3 flex flex-col items-center">
+            <div className="mt-3 flex flex-col items-center">
 
-                {/* AREA TANDA TANGAN */}
-                <div className="relative flex h-20 w-64 items-end justify-center sm:w-72 md:h-24">
+              {/* SIGNATURE IMAGE */}
+              <div className="relative flex h-20 w-64 items-end justify-center sm:w-72 md:h-24">
 
-                    <img
-                    src="/nadhilearn-signature.png"
-                    alt="Tanda tangan Alisya Nadhifa Raihani"
-                    className="absolute bottom-[-60px] z-10 h-32 w-48 object-contain md:bottom-[-64px] md:h-40 md:w-56"                    />
+                <img
+                  src="/nadhilearn-signature.png"
+                  alt="Tanda tangan Alisya Nadhifa Raihani"
+                  className="absolute bottom-[-60px] z-10 h-32 w-48 object-contain md:bottom-[-64px] md:h-40 md:w-56"
+                />
 
-                </div>
+              </div>
 
-                {/* GARIS DI ATAS NAMA */}
-                <div className="w-52 border-t border-[#0B1F3A] sm:w-60" />
+              {/* SIGNATURE LINE */}
+              <div className="w-52 border-t border-[#0B1F3A] sm:w-60" />
 
-                {/* NAMA */}
-                <p className="mt-1 text-xs font-bold text-[#0B1F3A] sm:text-sm">
-                    Alisya Nadhifa Raihani
-                </p>
+              {/* ADMIN NAME */}
+              <p className="mt-1 text-xs font-bold text-[#0B1F3A] sm:text-sm">
+                Alisya Nadhifa Raihani
+              </p>
 
-                {/* JABATAN */}
-                <p className="mt-0.5 text-[10px] text-gray-600 sm:text-xs">
-                    Administrator
-                </p>
+              {/* ADMIN ROLE */}
+              <p className="mt-0.5 text-[10px] text-gray-600 sm:text-xs">
+                Administrator
+              </p>
 
-                </div>
+            </div>
 
             {/* CERTIFICATE ID */}
             <div className="mt-3 w-full border-t border-gray-200 pt-2">
@@ -218,7 +220,7 @@ export default async function CertificatePage({ params }) {
           {/* END INNER BORDER */}
 
         </div>
-        {/* END OUTER NAVY BORDER */}
+        {/* END OUTER BORDER */}
 
       </div>
       {/* END CERTIFICATE */}
@@ -233,6 +235,7 @@ export default async function CertificatePage({ params }) {
         @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
 
         @media print {
+
           @page {
             size: A4 landscape;
             margin: 0;
@@ -240,41 +243,135 @@ export default async function CertificatePage({ params }) {
 
           html,
           body {
-            width: 297mm;
-            height: 210mm;
+            width: 297mm !important;
+            height: 210mm !important;
+            min-height: 0 !important;
             margin: 0 !important;
             padding: 0 !important;
+            overflow: hidden !important;
             background: white !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
 
+          /* SEMBUNYIKAN KONTEN LAIN */
+          body * {
+            visibility: hidden !important;
+          }
+
+          /* TAMPILKAN SERTIFIKAT */
+          .certificate-page,
+          .certificate-page * {
+            visibility: visible !important;
+          }
+
+          /* SEMBUNYIKAN TOMBOL DAN INFORMASI */
           .no-print {
             display: none !important;
           }
 
+          /*
+            ROOT SERTIFIKAT
+            Menggunakan absolute agar tidak diulang
+            pada setiap halaman seperti fixed.
+          */
+          .certificate-page {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            display: block !important;
+            width: 297mm !important;
+            height: 210mm !important;
+            min-height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            background: white !important;
+            box-sizing: border-box !important;
+            break-after: avoid !important;
+            page-break-after: avoid !important;
+          }
+
+          /* KERTAS SERTIFIKAT */
           .certificate-paper {
+            position: relative !important;
+            top: auto !important;
+            left: auto !important;
+            display: block !important;
             width: 297mm !important;
             height: 210mm !important;
             max-width: none !important;
             min-height: 0 !important;
             aspect-ratio: auto !important;
             margin: 0 !important;
-            padding: 10mm !important;
+            padding: 5mm !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
             background: white !important;
             box-shadow: none !important;
-            box-sizing: border-box !important;
-            page-break-after: avoid !important;
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
             break-after: avoid !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
+            page-break-after: avoid !important;
           }
 
-          .certificate-paper > div,
-          .certificate-paper > div > div {
+          /* OUTER BORDER */
+          .certificate-paper > div {
+            display: flex !important;
+            width: 100% !important;
             height: 100% !important;
             min-height: 0 !important;
+            box-sizing: border-box !important;
           }
+
+          /* INNER BORDER */
+          .certificate-paper > div > div {
+            display: flex !important;
+            flex-direction: column !important;
+            width: 100% !important;
+            height: 100% !important;
+            min-height: 0 !important;
+            padding: 3mm 10mm !important;
+            box-sizing: border-box !important;
+            justify-content: space-between !important;
+            gap: 0 !important;
+          }
+
+          /* JARAK KONTEN */
+          .certificate-paper > div > div > * {
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+            flex-shrink: 1 !important;
+          }
+
+          /* LOGO */
+          .certificate-paper img[alt="Logo NadhiLearn"] {
+            width: 12mm !important;
+            height: 12mm !important;
+          }
+
+          /* STUDENT NAME */
+          .certificate-paper h2 {
+            line-height: 1.1 !important;
+          }
+
+          /* SIGNATURE */
+          .certificate-paper img[alt^="Tanda tangan"] {
+            bottom: -8mm !important;
+            height: 30mm !important;
+            width: 45mm !important;
+          }
+
+          /* COURSE TITLE */
+          .certificate-paper h3 {
+            margin-top: 1mm !important;
+          }
+
+          /* CERTIFICATE ID */
+          .certificate-paper > div > div > div:last-child {
+            padding-top: 1mm !important;
+          }
+
         }
       `}</style>
 
