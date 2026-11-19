@@ -18,55 +18,62 @@ export default function HomeClient() {
   const [loadingCourses, setLoadingCourses] = useState(true);
   const [courseError, setCourseError] = useState("");
 
+  
   // State Student Testimonials
   const testimonialTrackRef = useRef(null);
+
+  const [testimonials, setTestimonials] = useState([]);
+  const [loadingTestimonials, setLoadingTestimonials] = useState(true);
+  const [testimonialError, setTestimonialError] = useState("");
+
   const [activeTestimonial, setActiveTestimonial] = useState(0);
   const [testimonialVisibleCount, setTestimonialVisibleCount] =
     useState(1);
 
-  // Data contoh Student Testimonials
-  const testimonials = [
-    {
-      id: 1,
-      name: "Alya Putri",
-      course: "UI/UX Design Fundamentals",
-      rating: 5,
-      message:
-        "Materi pembelajarannya mudah dipahami. Saya jadi lebih mengenal proses desain dan cara membuat tampilan aplikasi yang nyaman digunakan.",
-    },
-    {
-      id: 2,
-      name: "Raka Pratama",
-      course: "Full Stack Web Development",
-      rating: 5,
-      message:
-        "Belajar menjadi lebih terarah karena materi disusun secara bertahap. Saya bisa mempelajari dasar pengembangan website dengan lebih percaya diri.",
-    },
-    {
-      id: 3,
-      name: "Nadia Maharani",
-      course: "Digital Marketing Strategy",
-      rating: 5,
-      message:
-        "Materinya membantu saya memahami strategi pemasaran digital. Saya juga bisa belajar kembali sesuai waktu yang saya miliki.",
-    },
-    {
-      id: 4,
-      name: "Dimas Saputra",
-      course: "Data Analytics with Excel",
-      rating: 5,
-      message:
-        "Pembelajaran terasa praktis dan membantu saya memahami pengolahan data menggunakan Excel secara lebih terstruktur.",
-    },
-    {
-      id: 5,
-      name: "Citra Amelia",
-      course: "UI/UX Design Fundamentals",
-      rating: 5,
-      message:
-        "Saya suka karena bisa mengikuti materi secara bertahap dan memantau progres belajar. Pengalaman belajar terasa lebih terorganisir.",
-    },
-  ];
+  // Mengambil testimoni yang sudah dipublikasikan
+  useEffect(() => {
+    let active = true;
+
+    async function loadTestimonials() {
+      setLoadingTestimonials(true);
+      setTestimonialError("");
+
+      try {
+        const response = await fetch("/api/home/testimonials");
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(
+            data.message || "Gagal mengambil data testimoni."
+          );
+        }
+
+        if (active) {
+          setTestimonials(data.testimonials || []);
+          setActiveTestimonial(0);
+        }
+      } catch (error) {
+        console.error("Gagal mengambil testimoni Homepage:", error);
+
+        if (active) {
+          setTestimonials([]);
+          setTestimonialError(
+            error.message || "Terjadi kesalahan."
+          );
+        }
+      } finally {
+        if (active) {
+          setLoadingTestimonials(false);
+        }
+      }
+    }
+
+    loadTestimonials();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Mengambil data course dari API Homepage.
   useEffect(() => {
@@ -766,7 +773,7 @@ export default function HomeClient() {
             Temukan materi, ikuti kelas, dan pantau perkembangan belajarmu.
           </p>
         </div>
-      </section>
+                </section>
 
       {/* STUDENT TESTIMONIALS */}
       <section
@@ -789,139 +796,153 @@ export default function HomeClient() {
               Pengalaman belajar dan cerita perkembangan siswa
               bersama NadhiLearn.
             </p>
-
-            <p className="mt-3 text-xs text-[#0B1F3A]/50">
-              Preview desain — data testimoni masih berupa contoh.
-            </p>
           </div>
 
           {/* TESTIMONIAL CAROUSEL */}
-          <div
-            ref={testimonialTrackRef}
-            onScroll={handleTestimonialScroll}
-            className="flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-5 lg:gap-6"
-          >
-            {testimonials.map((testimonial) => (
-              <article
-                key={testimonial.id}
-                data-testimonial-card
-                className="flex min-w-0 w-[88%] shrink-0 snap-start flex-col rounded-xl border border-[#0B1F3A]/10 bg-white p-5 shadow-[0_8px_30px_rgba(11,31,58,0.07)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_12px_35px_rgba(11,31,58,0.12)] sm:w-[calc((100%-1.25rem)/2)] sm:p-6 lg:w-[calc((100%-3rem)/3)] lg:p-7"
-              >
-                {/* STUDENT PROFILE */}
-                <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#0B1F3A] text-base font-bold text-white sm:h-14 sm:w-14 sm:text-lg">
-                    {testimonial.name
-                      .split(" ")
-                      .map((word) => word[0])
-                      .slice(0, 2)
-                      .join("")}
-                  </div>
-
-                  <div className="min-w-0">
-                    <h3 className="break-words text-base font-bold sm:text-lg">
-                      {testimonial.name}
-                    </h3>
-
-                    <p className="mt-1 text-xs text-[#0B1F3A]/60 sm:text-sm">
-                      Student NadhiLearn
-                    </p>
-                  </div>
-                </div>
-
-                {/* RATING */}
-                <div
-                  className="mt-5 flex gap-1"
-                  aria-label={`${testimonial.rating} dari 5 bintang`}
+          
+          {loadingTestimonials ? (
+            <p className="py-10 text-center text-sm">
+              Memuat testimoni...
+            </p>
+          ) : testimonialError ? (
+            <p className="py-10 text-center text-sm text-red-600">
+              {testimonialError}
+            </p>
+          ) : testimonials.length === 0 ? (
+            <p className="py-10 text-center text-sm text-[#0B1F3A]/60">
+              Belum ada testimoni yang dipublikasikan.
+            </p>
+          ) : (
+            <div
+              ref={testimonialTrackRef}
+              onScroll={handleTestimonialScroll}
+              className="flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-5 lg:gap-6"
+            >
+              {testimonials.map((testimonial) => (
+                <article
+                  key={testimonial.id}
+                  data-testimonial-card
+                  className="flex min-w-0 w-[88%] shrink-0 snap-start flex-col rounded-xl border border-[#0B1F3A]/10 bg-white p-5 shadow-[0_8px_30px_rgba(11,31,58,0.07)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_12px_35px_rgba(11,31,58,0.12)] sm:w-[calc((100%-1.25rem)/2)] sm:p-6 lg:w-[calc((100%-3rem)/3)] lg:p-7"
                 >
+                  {/* STUDENT PROFILE */}
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#0B1F3A] text-base font-bold text-white sm:h-14 sm:w-14 sm:text-lg">
+                      {testimonial.name
+                        .split(" ")
+                        .map((word) => word[0])
+                        .slice(0, 2)
+                        .join("")}
+                    </div>
+
+                    <div className="min-w-0">
+                      <h3 className="break-words text-base font-bold sm:text-lg">
+                        {testimonial.name}
+                      </h3>
+
+                      <p className="mt-1 text-xs text-[#0B1F3A]/60 sm:text-sm">
+                        Student NadhiLearn
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* RATING */}
+                  <div
+                    className="mt-5 flex gap-1"
+                    aria-label={`${testimonial.rating} dari 5 bintang`}
+                  >
+                    {Array.from(
+                      { length: Number(testimonial.rating) },
+                      (_, index) => (
+                        <span
+                          key={index}
+                          className="text-lg text-[#0B1F3A]"
+                        >
+                          ★
+                        </span>
+                      )
+                    )}
+                  </div>
+
+                  {/* COURSE */}
+                  <p className="mt-3 text-xs font-bold uppercase tracking-wide text-[#0B1F3A]/55">
+                    Course
+                  </p>
+
+                  <p className="mt-1 text-sm font-semibold">
+                    {testimonial.course}
+                  </p>
+
+                  {/* MESSAGE */}
+                  <p className="mt-5 flex-1 text-sm leading-7 text-[#0B1F3A]/75 sm:text-base">
+                    "{testimonial.message}"
+                  </p>
+
+                  <div className="mt-6 border-t border-[#0B1F3A]/10 pt-4">
+                    <span className="text-xs font-semibold text-[#0B1F3A]/50">
+                      Student Experience
+                    </span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+
+          {/* CAROUSEL CONTROLS */}
+          {!loadingTestimonials &&
+            !testimonialError &&
+            testimonials.length > testimonialVisibleCount && (
+              <div className="mt-7 flex items-center justify-center gap-5 sm:mt-9">
+
+                {/* PREVIOUS */}
+                <button
+                  type="button"
+                  onClick={() => scrollTestimonials(-1)}
+                  disabled={activeTestimonial === 0}
+                  aria-label="Testimoni sebelumnya"
+                  className="flex h-11 w-11 items-center justify-center rounded-full border border-[#0B1F3A]/20 text-xl transition hover:bg-[#0B1F3A] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+                >
+                  ←
+                </button>
+
+                {/* INDICATOR */}
+                <div className="flex items-center gap-2">
                   {Array.from(
-                    { length: testimonial.rating },
+                    { length: maxTestimonialIndex + 1 },
                     (_, index) => (
-                      <span
+                      <button
                         key={index}
-                        className="text-lg text-[#0B1F3A]"
-                      >
-                        ★
-                      </span>
+                        type="button"
+                        onClick={() => goToTestimonial(index)}
+                        aria-label={`Lihat posisi testimoni ${index + 1}`}
+                        aria-current={
+                          activeTestimonial === index
+                            ? "true"
+                            : undefined
+                        }
+                        className={`h-2 rounded-full transition-all duration-300 ${
+                          activeTestimonial === index
+                            ? "w-10 bg-[#0B1F3A]"
+                            : "w-2 bg-[#0B1F3A]/25 hover:bg-[#0B1F3A]/50"
+                        }`}
+                      />
                     )
                   )}
                 </div>
 
-                {/* COURSE */}
-                <p className="mt-3 text-xs font-bold uppercase tracking-wide text-[#0B1F3A]/55">
-                  Course
-                </p>
-
-                <p className="mt-1 text-sm font-semibold">
-                  {testimonial.course}
-                </p>
-
-                {/* MESSAGE */}
-                <p className="mt-5 flex-1 text-sm leading-7 text-[#0B1F3A]/75 sm:text-base">
-                  "{testimonial.message}"
-                </p>
-
-                <div className="mt-6 border-t border-[#0B1F3A]/10 pt-4">
-                  <span className="text-xs font-semibold text-[#0B1F3A]/50">
-                    Student Experience
-                  </span>
-                </div>
-              </article>
-            ))}
-          </div>
-
-          {/* CAROUSEL CONTROLS */}
-          <div className="mt-7 flex items-center justify-center gap-5 sm:mt-9">
-
-            {/* PREVIOUS */}
-            <button
-              type="button"
-              onClick={() => scrollTestimonials(-1)}
-              disabled={activeTestimonial === 0}
-              aria-label="Testimoni sebelumnya"
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-[#0B1F3A]/20 text-xl transition hover:bg-[#0B1F3A] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
-            >
-              ←
-            </button>
-
-            {/* INDICATOR */}
-            <div className="flex items-center gap-2">
-              {Array.from(
-                { length: maxTestimonialIndex + 1 },
-                (_, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={() => goToTestimonial(index)}
-                    aria-label={`Lihat posisi testimoni ${index + 1}`}
-                    aria-current={
-                      activeTestimonial === index
-                        ? "true"
-                        : undefined
-                    }
-                    className={`h-2 rounded-full transition-all duration-300 ${
-                      activeTestimonial === index
-                        ? "w-10 bg-[#0B1F3A]"
-                        : "w-2 bg-[#0B1F3A]/25 hover:bg-[#0B1F3A]/50"
-                    }`}
-                  />
-                )
-              )}
-            </div>
-
-            {/* NEXT */}
-            <button
-              type="button"
-              onClick={() => scrollTestimonials(1)}
-              disabled={
-                activeTestimonial >= maxTestimonialIndex
-              }
-              aria-label="Testimoni berikutnya"
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-[#0B1F3A] text-xl text-white transition hover:bg-white hover:text-[#0B1F3A] hover:outline hover:outline-1 hover:outline-[#0B1F3A] disabled:cursor-not-allowed disabled:opacity-30"
-            >
-              →
-            </button>
-          </div>
-
+                {/* NEXT */}
+                <button
+                  type="button"
+                  onClick={() => scrollTestimonials(1)}
+                  disabled={
+                    activeTestimonial >= maxTestimonialIndex
+                  }
+                  aria-label="Testimoni berikutnya"
+                  className="flex h-11 w-11 items-center justify-center rounded-full bg-[#0B1F3A] text-xl text-white transition hover:bg-white hover:text-[#0B1F3A] hover:outline hover:outline-1 hover:outline-[#0B1F3A] disabled:cursor-not-allowed disabled:opacity-30"
+                >
+                  →
+                </button>
+              </div>
+            )}
         </div>
       </section>
 
