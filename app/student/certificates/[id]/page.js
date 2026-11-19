@@ -100,7 +100,7 @@ export default async function CertificatePage({ params }) {
           <div className="flex min-h-[680px] h-full w-full flex-col items-center justify-between border border-[#0B1F3A] px-2 py-4 text-center text-[#0B1F3A] sm:px-4 sm:py-5 md:min-h-0 md:px-12 md:py-4">
 
             {/* LOGO AND BRAND */}
-            <div className="flex items-center justify-center gap-2 sm:gap-3">
+            <div className="flex items-center justify-center gap-1 sm:gap-2">
 
               <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg bg-white p-0.5 sm:h-10 sm:w-10 md:h-14 md:w-14">
                 <img
@@ -137,11 +137,10 @@ export default async function CertificatePage({ params }) {
               </p>
 
               <h2
-                className="mt-2 text-3xl leading-tight text-[#0B1F3A] sm:text-4xl md:text-6xl"
-                style={{ fontFamily: "'Great Vibes', cursive" }}
-              >
-                {certificate.student_name}
-              </h2>
+                className="mt-4 text-4xl leading-tight text-[#0B1F3A] sm:text-5xl md:text-7xl"                style={{ fontFamily: "'Great Vibes', cursive" }}
+                 >
+                 {certificate.student_name}
+                 </h2>
 
               <div className="mx-auto mt-2 h-px w-2/3 max-w-md bg-[#0B1F3A]" />
 
@@ -175,31 +174,32 @@ export default async function CertificatePage({ params }) {
             </div>
 
             {/* SIGNATURE */}
-            <div className="mt-3 flex flex-col items-center">
+                <div className="mt-3 flex flex-col items-center">
 
-              {/* SIGNATURE AND NAME */}
-              <div className="relative flex h-20 w-64 items-end justify-center sm:w-72 md:h-24">
+                {/* AREA TANDA TANGAN */}
+                <div className="relative flex h-20 w-64 items-end justify-center sm:w-72 md:h-24">
 
-                <img
-                  src="/nadhilearn-signature.png"
-                  alt="Tanda tangan Alisya Nadhifa Raihani"
-                  className="absolute bottom-[-52px] z-10 h-32 w-48 object-contain md:bottom-[-56px] md:h-40 md:w-56"
-                />
+                    <img
+                    src="/nadhilearn-signature.png"
+                    alt="Tanda tangan Alisya Nadhifa Raihani"
+                    className="absolute bottom-[-60px] z-10 h-32 w-48 object-contain md:bottom-[-64px] md:h-40 md:w-56"                    />
 
-                <p className="relative z-0 text-xs font-bold text-[#0B1F3A] sm:text-sm">
-                  Alisya Nadhifa Raihani
+                </div>
+
+                {/* GARIS DI ATAS NAMA */}
+                <div className="w-52 border-t border-[#0B1F3A] sm:w-60" />
+
+                {/* NAMA */}
+                <p className="mt-1 text-xs font-bold text-[#0B1F3A] sm:text-sm">
+                    Alisya Nadhifa Raihani
                 </p>
 
-              </div>
+                {/* JABATAN */}
+                <p className="mt-0.5 text-[10px] text-gray-600 sm:text-xs">
+                    Administrator
+                </p>
 
-              {/* SIGNATURE LINE */}
-              <div className="w-52 border-t border-[#0B1F3A] sm:w-60" />
-
-              <p className="mt-1 text-[10px] text-gray-600 sm:text-xs">
-                Administrator
-              </p>
-
-            </div>
+                </div>
 
             {/* CERTIFICATE ID */}
             <div className="mt-3 w-full border-t border-gray-200 pt-2">
