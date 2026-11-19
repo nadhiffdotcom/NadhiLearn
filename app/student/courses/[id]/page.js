@@ -3,6 +3,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect, notFound } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { randomUUID } from "crypto";
 
 import pool from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
@@ -60,6 +61,7 @@ async function markContentCompleted(formData) {
 
   const student = await getStudent();
 
+  // CHECK ENROLLMENT
   const enrollmentResult = await pool.query(
     `SELECT e.id
      FROM enrollments e
@@ -75,6 +77,7 @@ async function markContentCompleted(formData) {
 
   const enrollmentId = enrollmentResult.rows[0].id;
 
+  // CHECK CONTENT
   const contentResult = await pool.query(
     `SELECT id
      FROM contents
@@ -88,6 +91,7 @@ async function markContentCompleted(formData) {
     redirect(`/student/courses/${courseId}`);
   }
 
+  // SAVE COMPLETED PROGRESS
   await pool.query(
     `INSERT INTO content_progress
        (enrollment_id, content_id, is_completed, completed_at)
@@ -98,6 +102,47 @@ async function markContentCompleted(formData) {
        completed_at = NOW()`,
     [enrollmentId, contentId]
   );
+
+  // CHECK TOTAL PROGRESS
+  const progressResult = await pool.query(
+    `SELECT
+       COUNT(ct.id)::int AS total_contents,
+       COUNT(cp.id) FILTER (
+         WHERE cp.is_completed = TRUE
+       )::int AS completed_contents
+     FROM contents ct
+     LEFT JOIN content_progress cp
+       ON cp.content_id = ct.id
+       AND cp.enrollment_id = $1
+     WHERE ct.course_id = $2`,
+    [enrollmentId, courseId]
+  );
+
+  const totalContents = progressResult.rows[0].total_contents;
+  const completedContents = progressResult.rows[0].completed_contents;
+
+  // AUTOMATICALLY ISSUE CERTIFICATE AT 100%
+  if (
+    totalContents > 0 &&
+    completedContents === totalContents
+  ) {
+    const certificateCode = `NDH-${randomUUID().toUpperCase()}`;
+
+    await pool.query(
+      `INSERT INTO certificates (
+         enrollment_id,
+         certificate_code,
+         student_name,
+         course_title
+       )
+       SELECT $1, $2, u.username, c.title
+       FROM users u
+       JOIN courses c ON c.id = $3
+       WHERE u.id = $4
+       ON CONFLICT (enrollment_id) DO NOTHING`,
+      [enrollmentId, certificateCode, courseId, student.id]
+    );
+  }
 
   revalidatePath(`/student/courses/${courseId}`);
   revalidatePath("/student/my-courses");
@@ -128,7 +173,7 @@ async function addComment(formData) {
 
   const student = await getStudent();
 
-  // Pastikan Student sudah terdaftar pada course
+  // PASTIKAN STUDENT SUDAH TERDAFTAR PADA COURSE
   const enrollmentResult = await pool.query(
     `SELECT id
      FROM enrollments
@@ -142,7 +187,7 @@ async function addComment(formData) {
     redirect("/student/courses");
   }
 
-  // Pastikan materi benar-benar milik course tersebut
+  // PASTIKAN MATERI MILIK COURSE TERSEBUT
   const contentResult = await pool.query(
     `SELECT id
      FROM contents
@@ -156,7 +201,7 @@ async function addComment(formData) {
     redirect(`/student/courses/${courseId}`);
   }
 
-  // Simpan komentar
+  // SIMPAN KOMENTAR
   await pool.query(
     `INSERT INTO comments (content_id, user_id, comment)
      VALUES ($1, $2, $3)`,
@@ -278,7 +323,7 @@ export default async function CourseDetailPage({ params }) {
     comments = commentsResult.rows;
   }
 
-  // Kelompokkan komentar berdasarkan materi
+  // KELOMPOKKAN KOMENTAR BERDASARKAN MATERI
   const commentsByContent = {};
 
   for (const comment of comments) {
@@ -291,6 +336,9 @@ export default async function CourseDetailPage({ params }) {
     commentsByContent[key].push(comment);
   }
 
+  // ========================================
+  // CALCULATE PROGRESS
+  // ========================================
   const completedCount = contents.filter(
     (content) => content.is_completed
   ).length;
@@ -301,6 +349,48 @@ export default async function CourseDetailPage({ params }) {
     totalContents > 0
       ? Math.round((completedCount / totalContents) * 100)
       : 0;
+
+// ========================================
+// AUTO ISSUE CERTIFICATE IF PROGRESS 100%
+// ========================================
+if (
+  totalContents > 0 &&
+  completedCount === totalContents
+) {
+  // Cek apakah sertifikat sudah tersedia
+  const certificateResult = await pool.query(
+    `SELECT id
+     FROM certificates
+     WHERE enrollment_id = $1
+     LIMIT 1`,
+    [enrollmentId]
+  );
+
+  // Terbitkan hanya jika belum ada
+  if (certificateResult.rows.length === 0) {
+    const certificateCode = `NDH-${randomUUID().toUpperCase()}`;
+
+    await pool.query(
+      `INSERT INTO certificates (
+         enrollment_id,
+         certificate_code,
+         student_name,
+         course_title
+       )
+       SELECT
+         e.id,
+         $2,
+         u.username,
+         c.title
+       FROM enrollments e
+       JOIN users u ON u.id = e.student_id
+       JOIN courses c ON c.id = e.course_id
+       WHERE e.id = $1
+       ON CONFLICT (enrollment_id) DO NOTHING`,
+      [enrollmentId, certificateCode]
+    );
+  }
+}
 
   // ========================================
   // RENDER

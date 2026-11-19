@@ -106,7 +106,7 @@ export default async function MyCoursesPage({ searchParams }) {
   const offset = (currentPage - 1) * limit;
 
   // ========================================
-  // GET MY COURSES
+  // GET MY COURSES + PROGRESS + CERTIFICATE
   // ========================================
   const courseResult = await pool.query(
     `
@@ -119,7 +119,31 @@ export default async function MyCoursesPage({ searchParams }) {
         c.end_date,
         cat.name AS category_name,
         teacher.username AS teacher_name,
-        e.enrolled_at
+        e.id AS enrollment_id,
+        e.enrolled_at,
+
+        -- TOTAL MATERI
+        (
+          SELECT COUNT(*)::int
+          FROM contents ct
+          WHERE ct.course_id = c.id
+        ) AS total_contents,
+
+        -- MATERI SELESAI
+        (
+          SELECT COUNT(*)::int
+          FROM content_progress cp
+          INNER JOIN contents ct
+            ON ct.id = cp.content_id
+          WHERE cp.enrollment_id = e.id
+            AND cp.is_completed = TRUE
+            AND ct.course_id = c.id
+        ) AS completed_contents,
+
+        -- DATA SERTIFIKAT
+        cert.id AS certificate_id,
+        cert.certificate_code,
+        cert.issued_at
 
       FROM enrollments e
 
@@ -131,6 +155,9 @@ export default async function MyCoursesPage({ searchParams }) {
 
       LEFT JOIN users teacher
         ON teacher.id = c.teacher_id
+
+      LEFT JOIN certificates cert
+        ON cert.enrollment_id = e.id
 
       WHERE e.student_id = $1
         AND (
@@ -239,77 +266,158 @@ export default async function MyCoursesPage({ searchParams }) {
       ) : (
         <>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            {courses.map((course) => (
-              <div
-                key={course.id}
-                className="group overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
-              >
-                {/* THUMBNAIL */}
-                <div className="h-44 overflow-hidden bg-gray-100">
-                  {course.thumbnail ? (
-                    <img
-                      src={course.thumbnail}
-                      alt={course.title}
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-5xl">
-                      📚
+            {courses.map((course) => {
+              // ========================================
+              // CALCULATE PROGRESS
+              // ========================================
+              const totalContents = Number(course.total_contents);
+              const completedContents = Number(course.completed_contents);
+
+              const progress =
+                totalContents > 0
+                  ? Math.min(
+                      100,
+                      Math.round(
+                        (completedContents / totalContents) * 100
+                      )
+                    )
+                  : 0;
+
+              const isCompleted =
+                totalContents > 0 && completedContents >= totalContents;
+
+              return (
+                <div
+                  key={course.id}
+                  className="group overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+                >
+                  {/* THUMBNAIL */}
+                  <div className="h-44 overflow-hidden bg-gray-100">
+                    {course.thumbnail ? (
+                      <img
+                        src={course.thumbnail}
+                        alt={course.title}
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-5xl">
+                        📚
+                      </div>
+                    )}
+                  </div>
+
+                  {/* COURSE INFO */}
+                  <div className="p-5">
+                    <div className="mb-3">
+                      <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                        {course.category_name || "Tanpa Kategori"}
+                      </span>
                     </div>
-                  )}
-                </div>
 
-                {/* COURSE INFO */}
-                <div className="p-5">
-                  <div className="mb-3">
-                    <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-                      {course.category_name || "Tanpa Kategori"}
-                    </span>
+                    <h3 className="mb-2 line-clamp-2 text-lg font-bold text-[#0B1F3A]">
+                      {course.title}
+                    </h3>
+
+                    <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-gray-500">
+                      {course.description || "Belum ada deskripsi course."}
+                    </p>
+
+                    {/* TEACHER AND DATE */}
+                    <div className="mb-4 space-y-2 border-t border-gray-100 pt-4 text-sm">
+                      <p className="text-gray-600">
+                        <span className="font-semibold text-[#0B1F3A]">
+                          Teacher:
+                        </span>{" "}
+                        {course.teacher_name || "Belum ditentukan"}
+                      </p>
+
+                      <p className="text-gray-600">
+                        <span className="font-semibold text-[#0B1F3A]">
+                          Bergabung:
+                        </span>{" "}
+                        {formatDate(course.enrolled_at)}
+                      </p>
+
+                      <p className="text-gray-600">
+                        <span className="font-semibold text-[#0B1F3A]">
+                          Periode:
+                        </span>{" "}
+                        {formatDate(course.start_date)} –{" "}
+                        {formatDate(course.end_date)}
+                      </p>
+                    </div>
+
+                    {/* PROGRESS BELAJAR */}
+                    <div className="mb-4">
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className="text-sm font-semibold text-[#0B1F3A]">
+                          Progress Belajar
+                        </span>
+
+                        <span className="text-sm font-bold text-[#0B1F3A]">
+                          {progress}%
+                        </span>
+                      </div>
+
+                      <div className="h-2 overflow-hidden rounded-full bg-gray-100">
+                        <div
+                          className={`h-full rounded-full transition-all ${
+                            isCompleted ? "bg-green-500" : "bg-blue-500"
+                          }`}
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+
+                      <p className="mt-2 text-xs text-gray-500">
+                        {completedContents} dari {totalContents} materi selesai
+                      </p>
+                    </div>
+
+                    {/* COURSE ACTION BUTTONS */}
+                    {isCompleted ? (
+                      <>
+                        {/* COMPLETED STATUS */}
+                        <div className="mb-3 rounded-lg bg-green-50 px-4 py-3 text-center">
+                          <p className="text-sm font-bold text-green-700">
+                            ✓ Course Selesai!
+                          </p>
+
+                          <p className="mt-1 text-xs text-green-600">
+                            Kamu telah menyelesaikan seluruh materi.
+                          </p>
+                        </div>
+
+                        {/* CERTIFICATE BUTTON */}
+                        {course.certificate_id && (
+                          <Link
+                            href={`/student/certificates/${course.certificate_id}`}
+                            className="mb-3 block rounded-lg bg-green-600 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-green-700"
+                          >
+                            🏆 Lihat Sertifikat
+                          </Link>
+                        )}
+
+                        {/* VIEW MATERIAL BUTTON */}
+                        <Link
+                          href={`/student/courses/${course.id}`}
+                          className="block rounded-lg border border-[#0B1F3A] px-4 py-3 text-center text-sm font-semibold text-[#0B1F3A] transition hover:bg-gray-100"
+                        >
+                          Lihat Materi
+                        </Link>
+                      </>
+                    ) : (
+                      /* CONTINUE LEARNING */
+                      <Link
+                        href={`/student/courses/${course.id}`}
+                        className="block rounded-lg bg-[#0B1F3A] px-4 py-3 text-center text-sm font-semibold text-white transition duration-200 hover:bg-[#18395F]"
+                      >
+                        Lanjutkan Belajar
+                      </Link>
+                    )}
                   </div>
-
-                  <h3 className="mb-2 line-clamp-2 text-lg font-bold text-[#0B1F3A]">
-                    {course.title}
-                  </h3>
-
-                  <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-gray-500">
-                    {course.description || "Belum ada deskripsi course."}
-                  </p>
-
-                  {/* TEACHER AND DATE */}
-                  <div className="mb-4 space-y-2 border-t border-gray-100 pt-4 text-sm">
-                    <p className="text-gray-600">
-                      <span className="font-semibold text-[#0B1F3A]">
-                        Teacher:
-                      </span>{" "}
-                      {course.teacher_name || "Belum ditentukan"}
-                    </p>
-
-                    <p className="text-gray-600">
-                      <span className="font-semibold text-[#0B1F3A]">
-                        Bergabung:
-                      </span>{" "}
-                      {formatDate(course.enrolled_at)}
-                    </p>
-
-                    <p className="text-gray-600">
-                      <span className="font-semibold text-[#0B1F3A]">
-                        Periode:
-                      </span>{" "}
-                      {formatDate(course.start_date)} –{" "}
-                      {formatDate(course.end_date)}
-                    </p>
-                  </div>
-
-                  {/* CONTINUE BUTTON */}
-                  <Link
-                    href={`/student/courses/${course.id}`}
-                    className="block rounded-lg bg-[#0B1F3A] px-4 py-3 text-center text-sm font-semibold text-white transition duration-200 hover:bg-[#18395F]"
-                  >
-                    Lanjutkan Belajar
-                  </Link>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* PAGINATION */}
