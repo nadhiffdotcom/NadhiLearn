@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const initialForm = {
   student_name: "",
@@ -12,6 +12,96 @@ const initialForm = {
 };
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const CROP_SIZE = 240;
+const OUTPUT_SIZE = 512;
+
+// Membuat file foto berdasarkan area crop yang dipilih Admin
+async function createCroppedImage(file, zoom, offset) {
+  const objectUrl = URL.createObjectURL(file);
+
+  try {
+    const image = new window.Image();
+
+    await new Promise((resolve, reject) => {
+      image.onload = resolve;
+      image.onerror = () => reject(new Error("Gagal membaca foto."));
+      image.src = objectUrl;
+    });
+
+    const naturalWidth = image.naturalWidth;
+    const naturalHeight = image.naturalHeight;
+
+    const baseScale = Math.max(
+      CROP_SIZE / naturalWidth,
+      CROP_SIZE / naturalHeight
+    );
+
+    const scale = baseScale * zoom;
+
+    const sourceWidth = CROP_SIZE / scale;
+    const sourceHeight = CROP_SIZE / scale;
+
+    const sourceX = Math.max(
+      0,
+      Math.min(
+        naturalWidth - sourceWidth,
+        (naturalWidth - sourceWidth) / 2 - offset.x / scale
+      )
+    );
+
+    const sourceY = Math.max(
+      0,
+      Math.min(
+        naturalHeight - sourceHeight,
+        (naturalHeight - sourceHeight) / 2 - offset.y / scale
+      )
+    );
+
+    const canvas = document.createElement("canvas");
+    canvas.width = OUTPUT_SIZE;
+    canvas.height = OUTPUT_SIZE;
+
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+      throw new Error("Gagal memproses foto.");
+    }
+
+    context.drawImage(
+      image,
+      sourceX,
+      sourceY,
+      sourceWidth,
+      sourceHeight,
+      0,
+      0,
+      OUTPUT_SIZE,
+      OUTPUT_SIZE
+    );
+
+    const blob = await new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (result) => {
+          if (result) {
+            resolve(result);
+          } else {
+            reject(new Error("Gagal membuat hasil crop foto."));
+          }
+        },
+        "image/jpeg",
+        0.92
+      );
+    });
+
+    return new File(
+      [blob],
+      `testimonial-${Date.now()}.jpg`,
+      { type: "image/jpeg" }
+    );
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
 
 export default function TestimonialManager() {
   const [testimonials, setTestimonials] = useState([]);
@@ -38,6 +128,14 @@ export default function TestimonialManager() {
   const [currentImageUrl, setCurrentImageUrl] = useState("");
   const [removeImage, setRemoveImage] = useState(false);
 
+  // State crop foto
+  const [imageNaturalSize, setImageNaturalSize] = useState(null);
+  const [cropZoom, setCropZoom] = useState(1);
+  const [cropOffset, setCropOffset] = useState({ x: 0, y: 0 });
+
+  const imageInputRef = useRef(null);
+  const dragRef = useRef(null);
+
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -45,6 +143,7 @@ export default function TestimonialManager() {
   useEffect(() => {
     if (!selectedImage) {
       setSelectedImagePreview("");
+      setImageNaturalSize(null);
       return;
     }
 
@@ -55,6 +154,25 @@ export default function TestimonialManager() {
       URL.revokeObjectURL(objectUrl);
     };
   }, [selectedImage]);
+
+  // Membaca ukuran asli foto
+  useEffect(() => {
+    if (!selectedImagePreview) {
+      setImageNaturalSize(null);
+      return;
+    }
+
+    const image = new window.Image();
+
+    image.onload = () => {
+      setImageNaturalSize({
+        width: image.naturalWidth,
+        height: image.naturalHeight,
+      });
+    };
+
+    image.src = selectedImagePreview;
+  }, [selectedImagePreview]);
 
   async function loadTestimonials() {
     setLoading(true);
@@ -95,6 +213,15 @@ export default function TestimonialManager() {
     setSelectedImagePreview("");
     setCurrentImageUrl("");
     setRemoveImage(false);
+
+    setImageNaturalSize(null);
+    setCropZoom(1);
+    setCropOffset({ x: 0, y: 0 });
+    dragRef.current = null;
+
+    if (imageInputRef.current) {
+      imageInputRef.current.value = "";
+    }
   }
 
   function openAddModal() {
@@ -121,6 +248,14 @@ export default function TestimonialManager() {
     setSelectedImage(null);
     setCurrentImageUrl(testimonial.image_url || "");
     setRemoveImage(false);
+
+    setImageNaturalSize(null);
+    setCropZoom(1);
+    setCropOffset({ x: 0, y: 0 });
+
+    if (imageInputRef.current) {
+      imageInputRef.current.value = "";
+    }
 
     setError("");
     setModalOpen(true);
@@ -171,12 +306,114 @@ export default function TestimonialManager() {
 
     setSelectedImage(file);
     setRemoveImage(false);
+
+    // Reset pengaturan crop saat memilih foto baru
+    setCropZoom(1);
+    setCropOffset({ x: 0, y: 0 });
+    setImageNaturalSize(null);
+    dragRef.current = null;
+  }
+
+  // Menghitung ukuran tampilan foto di area crop
+  const baseScale = imageNaturalSize
+    ? Math.max(
+        CROP_SIZE / imageNaturalSize.width,
+        CROP_SIZE / imageNaturalSize.height
+      )
+    : 1;
+
+      const renderedWidth = imageNaturalSize
+      ? imageNaturalSize.width * baseScale
+      : CROP_SIZE;
+
+      const renderedHeight = imageNaturalSize
+      ? imageNaturalSize.height * baseScale
+      : CROP_SIZE;
+
+  function clampCropOffset(x, y, zoom = cropZoom) {
+    if (!imageNaturalSize) {
+      return { x: 0, y: 0 };
+    }
+
+    const scale = Math.max(
+      CROP_SIZE / imageNaturalSize.width,
+      CROP_SIZE / imageNaturalSize.height
+    ) * zoom;
+
+    const maxX = Math.max(
+      0,
+      (imageNaturalSize.width * scale - CROP_SIZE) / 2
+    );
+
+    const maxY = Math.max(
+      0,
+      (imageNaturalSize.height * scale - CROP_SIZE) / 2
+    );
+
+    return {
+      x: Math.max(-maxX, Math.min(maxX, x)),
+      y: Math.max(-maxY, Math.min(maxY, y)),
+    };
+  }
+
+  // Menggeser foto dengan mouse atau sentuhan
+  function handleCropPointerDown(e) {
+    if (!selectedImage || !imageNaturalSize) return;
+
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+
+    dragRef.current = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      initialX: cropOffset.x,
+      initialY: cropOffset.y,
+    };
+  }
+
+  function handleCropPointerMove(e) {
+    if (!dragRef.current) return;
+
+    const drag = dragRef.current;
+
+    if (drag.pointerId !== e.pointerId) return;
+
+    const nextX = drag.initialX + (e.clientX - drag.startX);
+    const nextY = drag.initialY + (e.clientY - drag.startY);
+
+    setCropOffset(clampCropOffset(nextX, nextY));
+  }
+
+  function handleCropPointerUp(e) {
+    if (dragRef.current?.pointerId === e.pointerId) {
+      dragRef.current = null;
+    }
+  }
+
+  function handleZoomChange(value) {
+    const nextZoom = Number(value);
+
+    setCropZoom(nextZoom);
+
+    setCropOffset((previous) =>
+      clampCropOffset(previous.x, previous.y, nextZoom)
+    );
   }
 
   // Menghapus foto dari testimonial
   function handleRemoveImage() {
     setSelectedImage(null);
+    setImageNaturalSize(null);
+    setCropZoom(1);
+    setCropOffset({ x: 0, y: 0 });
+    dragRef.current = null;
+
     setRemoveImage(Boolean(currentImageUrl));
+
+    if (imageInputRef.current) {
+      imageInputRef.current.value = "";
+    }
   }
 
   async function handleSubmit(e) {
@@ -197,8 +434,15 @@ export default function TestimonialManager() {
         formData.append("id", String(selectedId));
       }
 
+      // Proses crop sebelum dikirim ke API
       if (selectedImage) {
-        formData.append("image", selectedImage);
+        const croppedImage = await createCroppedImage(
+          selectedImage,
+          cropZoom,
+          cropOffset
+        );
+
+        formData.append("image", croppedImage);
       }
 
       formData.append("remove_image", String(removeImage));
@@ -223,7 +467,7 @@ export default function TestimonialManager() {
         await loadTestimonials();
       }
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Gagal memproses foto atau menyimpan testimoni.");
     }
   }
 
@@ -284,8 +528,7 @@ export default function TestimonialManager() {
     pagination.total
   );
 
-  const displayedImage = selectedImagePreview ||
-    (!removeImage ? currentImageUrl : "");
+  const displayedImage = !removeImage ? currentImageUrl : "";
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 text-[#0B1F3A] md:p-10">
@@ -578,29 +821,135 @@ export default function TestimonialManager() {
                 />
               </div>
 
-              {/* Upload Foto */}
+              {/* Upload dan Crop Foto */}
               <div>
                 <label className="mb-2 block text-sm font-semibold">
                   Foto Mahasiswa
                 </label>
 
                 <div className="rounded-lg border border-gray-200 p-4">
-                  {displayedImage ? (
+                  {selectedImage && selectedImagePreview ? (
+                    <div className="mb-4">
+                      <p className="mb-3 text-sm font-medium text-gray-700">
+                        Atur bagian foto yang ingin ditampilkan
+                      </p>
+
+                      {/* Area crop */}
+                      <div className="flex justify-center">
+                        <div
+                          className="relative h-[240px] w-[240px] touch-none select-none overflow-hidden rounded-full border-2 border-[#0B1F3A] bg-gray-100"
+                          onPointerDown={handleCropPointerDown}
+                          onPointerMove={handleCropPointerMove}
+                          onPointerUp={handleCropPointerUp}
+                          onPointerCancel={handleCropPointerUp}
+                          style={{
+                            cursor: imageNaturalSize ? "grab" : "default",
+                          }}
+                        >
+                          {imageNaturalSize && (
+                            <img
+                              src={selectedImagePreview}
+                              alt="Atur posisi crop foto"
+                              draggable={false}
+                              className="pointer-events-none absolute max-w-none"
+                              style={{
+                              width: `${renderedWidth}px`,
+                              height: `${renderedHeight}px`,
+                              left: "50%",
+                              top: "50%",
+                              transform: `translate(calc(-50% + ${cropOffset.x}px), calc(-50% + ${cropOffset.y}px)) scale(${cropZoom})`,
+                              transformOrigin: "center center",
+                            }}
+                            />
+                          )}
+
+                          {!imageNaturalSize && (
+                            <div className="flex h-full items-center justify-center text-sm text-gray-500">
+                              Memuat preview...
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <p className="mt-3 text-center text-xs text-gray-500">
+                        Geser foto untuk mengatur posisi. Area lingkaran adalah
+                        bagian yang akan ditampilkan.
+                      </p>
+
+                      {/* Zoom slider */}
+                      <div className="mt-5">
+                        <div className="mb-2 flex items-center justify-between">
+                          <label className="text-sm font-medium text-gray-700">
+                            Zoom foto
+                          </label>
+                          <span className="text-xs font-semibold text-gray-600">
+                            {cropZoom.toFixed(1)}x
+                          </span>
+                        </div>
+
+                        <input
+                          type="range"
+                          min="1"
+                          max="3"
+                          step="0.01"
+                          value={cropZoom}
+                          onChange={(e) => handleZoomChange(e.target.value)}
+                          disabled={!imageNaturalSize}
+                          className="w-full accent-[#0B1F3A]"
+                        />
+
+                        <div className="flex justify-between text-xs text-gray-400">
+                          <span>Perkecil</span>
+                          <span>Perbesar</span>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex items-center gap-4">
+                        <div className="h-20 w-20 shrink-0 overflow-hidden rounded-full border border-gray-200">
+                          <img
+                            src={selectedImagePreview}
+                            alt="Preview hasil crop foto"
+                            draggable={false}
+                            className="h-full w-full object-cover"
+                            style={{
+                              objectPosition: "center",
+                            }}
+                          />
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <p className="break-all text-sm font-medium text-gray-700">
+                            {selectedImage.name}
+                          </p>
+                          <p className="mt-1 text-xs text-gray-500">
+                            Hasil akhir akan disimpan dalam bentuk persegi.
+                          </p>
+
+                          <button
+                            type="button"
+                            onClick={handleRemoveImage}
+                            className="mt-2 text-xs font-semibold text-red-600 hover:text-red-700"
+                          >
+                            Hapus foto
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : displayedImage ? (
                     <div className="mb-4 flex items-center gap-4">
                       <img
                         src={displayedImage}
-                        alt="Preview foto mahasiswa"
+                        alt="Foto mahasiswa"
                         className="h-20 w-20 rounded-full border border-gray-200 object-cover"
                       />
 
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-gray-700">
-                          {selectedImage
-                            ? selectedImage.name
-                            : "Foto mahasiswa"}
+                          Foto mahasiswa saat ini
                         </p>
                         <p className="mt-1 text-xs text-gray-500">
-                          Preview foto testimonial.
+                          Pilih foto baru jika ingin mengganti atau mengatur
+                          ulang bagian foto.
                         </p>
 
                         <button
@@ -630,6 +979,7 @@ export default function TestimonialManager() {
                   )}
 
                   <input
+                    ref={imageInputRef}
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
                     onChange={handleImageChange}
