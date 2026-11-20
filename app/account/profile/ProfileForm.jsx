@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -14,6 +13,11 @@ export default function ProfileForm({ user, overview = {} }) {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  // State untuk tampil/sembunyikan password
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(false);
@@ -415,14 +419,24 @@ export default function ProfileForm({ user, overview = {} }) {
             Password Saat Ini
           </label>
 
-          <input
-            type="password"
-            value={currentPassword}
-            onChange={(event) => setCurrentPassword(event.target.value)}
-            className={inputClass}
-            autoComplete="current-password"
-            required
-          />
+          <div className="relative">
+            <input
+              type={showCurrentPassword ? "text" : "password"}
+              value={currentPassword}
+              onChange={(event) => setCurrentPassword(event.target.value)}
+              className={`${inputClass} pr-24`}
+              autoComplete="current-password"
+              required
+            />
+
+            <button
+              type="button"
+              onClick={() => setShowCurrentPassword((prev) => !prev)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#0B1F3A] hover:underline"
+            >
+              {showCurrentPassword ? "Sembunyikan" : "Tampilkan"}
+            </button>
+          </div>
         </div>
 
         {/* PASSWORD BARU */}
@@ -431,14 +445,24 @@ export default function ProfileForm({ user, overview = {} }) {
             Password Baru
           </label>
 
-          <input
-            type="password"
-            value={newPassword}
-            onChange={(event) => setNewPassword(event.target.value)}
-            className={inputClass}
-            minLength={8}
-            autoComplete="new-password"
-          />
+          <div className="relative">
+            <input
+              type={showNewPassword ? "text" : "password"}
+              value={newPassword}
+              onChange={(event) => setNewPassword(event.target.value)}
+              className={`${inputClass} pr-24`}
+              minLength={8}
+              autoComplete="new-password"
+            />
+
+            <button
+              type="button"
+              onClick={() => setShowNewPassword((prev) => !prev)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#0B1F3A] hover:underline"
+            >
+              {showNewPassword ? "Sembunyikan" : "Tampilkan"}
+            </button>
+          </div>
         </div>
 
         {/* KONFIRMASI PASSWORD */}
@@ -447,13 +471,23 @@ export default function ProfileForm({ user, overview = {} }) {
             Konfirmasi Password Baru
           </label>
 
-          <input
-            type="password"
-            value={confirmPassword}
-            onChange={(event) => setConfirmPassword(event.target.value)}
-            className={inputClass}
-            autoComplete="new-password"
-          />
+          <div className="relative">
+            <input
+              type={showConfirmPassword ? "text" : "password"}
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              className={`${inputClass} pr-24`}
+              autoComplete="new-password"
+            />
+
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword((prev) => !prev)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#0B1F3A] hover:underline"
+            >
+              {showConfirmPassword ? "Sembunyikan" : "Tampilkan"}
+            </button>
+          </div>
         </div>
 
         {/* PESAN */}

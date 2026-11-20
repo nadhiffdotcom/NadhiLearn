@@ -9,8 +9,10 @@ export default function RegisterPage() {
 
   const [accountType, setAccountType] = useState("student");
   const [username, setUsername] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [teacherBackground, setTeacherBackground] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -18,6 +20,11 @@ export default function RegisterPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     setMessage("");
+
+    if (displayName.trim().length > 100) {
+      setMessage("Display Name maksimal 100 karakter.");
+      return;
+    }
 
     if (accountType === "teacher" && !teacherBackground.trim()) {
       setMessage("Mohon isi latar belakang atau pengalaman mengajar.");
@@ -34,6 +41,7 @@ export default function RegisterPage() {
         },
         body: JSON.stringify({
           username,
+          display_name: displayName.trim(),
           email,
           password,
           accountType,
@@ -58,8 +66,8 @@ export default function RegisterPage() {
   }
 
   return (
-   <main className="min-h-screen w-full min-w-0 overflow-x-hidden bg-[#0B1F3A] px-3 py-6 sm:flex sm:items-center sm:justify-center sm:px-6 sm:py-10">
-  <div className="mx-auto w-full min-w-0 max-w-lg rounded-2xl bg-white p-4 text-[#0B1F3A] shadow-xl sm:p-8">
+    <main className="min-h-screen w-full min-w-0 overflow-x-hidden bg-[#0B1F3A] px-3 py-6 sm:flex sm:items-center sm:justify-center sm:px-6 sm:py-10">
+      <div className="mx-auto w-full min-w-0 max-w-lg rounded-2xl bg-white p-4 text-[#0B1F3A] shadow-xl sm:p-8">
         <h1 className="mb-2 text-center text-2xl font-bold sm:text-3xl">
           Daftar NadhiLearn
         </h1>
@@ -111,9 +119,26 @@ export default function RegisterPage() {
               onChange={(e) => setUsername(e.target.value)}
               required
               minLength={3}
+              maxLength={50}
               autoComplete="username"
               className="w-full min-w-0 rounded-lg border border-[#0B1F3A] px-3 py-3 text-base outline-none transition focus:ring-2 focus:ring-[#0B1F3A]/20 sm:px-4"
               placeholder="Masukkan username"
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-semibold sm:text-base">
+              Name
+            </label>
+            <input
+              type="text"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              required
+              maxLength={100}
+              autoComplete="name"
+              className="w-full min-w-0 rounded-lg border border-[#0B1F3A] px-3 py-3 text-base outline-none transition focus:ring-2 focus:ring-[#0B1F3A]/20 sm:px-4"
+              placeholder="Masukkan nama lengkap"
             />
           </div>
 
@@ -136,16 +161,31 @@ export default function RegisterPage() {
             <label className="mb-2 block text-sm font-semibold sm:text-base">
               Password
             </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={8}
-              autoComplete="new-password"
-              className="w-full min-w-0 rounded-lg border border-[#0B1F3A] px-3 py-3 text-base outline-none transition focus:ring-2 focus:ring-[#0B1F3A]/20 sm:px-4"
-              placeholder="Minimal 8 karakter"
-            />
+
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={8}
+                autoComplete="new-password"
+                className="w-full min-w-0 rounded-lg border border-[#0B1F3A] px-3 py-3 pr-24 text-base outline-none transition focus:ring-2 focus:ring-[#0B1F3A]/20 sm:px-4 sm:pr-24"
+                placeholder="Minimal 8 karakter"
+              />
+
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-label={
+                  showPassword ? "Sembunyikan password" : "Tampilkan password"
+                }
+                aria-pressed={showPassword}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-[#0B1F3A] hover:text-[#17385F] focus:outline-none"
+              >
+                {showPassword ? "Sembunyikan" : "Tampilkan"}
+              </button>
+            </div>
           </div>
 
           {accountType === "teacher" && (
@@ -175,14 +215,14 @@ export default function RegisterPage() {
             </p>
           )}
 
-           <button
-        type="submit"
-        disabled={loading}
-        className="block w-full min-w-0 max-w-full break-words rounded-lg bg-[#0B1F3A] px-3 py-3 text-center font-bold text-white transition hover:bg-[#17385F] disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {loading ? "Memproses..." : "Daftar Sekarang"}
-      </button>
-              </form>
+          <button
+            type="submit"
+            disabled={loading}
+            className="block w-full min-w-0 max-w-full break-words rounded-lg bg-[#0B1F3A] px-3 py-3 text-center font-bold text-white transition hover:bg-[#17385F] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {loading ? "Memproses..." : "Daftar Sekarang"}
+          </button>
+        </form>
 
         <p className="mt-6 text-center text-sm leading-relaxed sm:text-base">
           Sudah punya akun?{" "}

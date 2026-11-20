@@ -9,6 +9,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -96,15 +97,29 @@ export default function LoginPage() {
               Password
             </label>
 
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-              className="w-full min-w-0 rounded-lg border border-[#0B1F3A] px-3 py-3 text-base outline-none transition focus:ring-2 focus:ring-[#0B1F3A]/20 sm:px-4"
-              placeholder="Masukkan password"
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                className="w-full min-w-0 rounded-lg border border-[#0B1F3A] px-3 py-3 pr-24 text-base outline-none transition focus:ring-2 focus:ring-[#0B1F3A]/20 sm:px-4 sm:pr-24"
+                placeholder="Masukkan password"
+              />
+
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-label={
+                  showPassword ? "Sembunyikan password" : "Tampilkan password"
+                }
+                aria-pressed={showPassword}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-[#0B1F3A] hover:text-[#17385F] focus:outline-none"
+              >
+                {showPassword ? "Sembunyikan" : "Tampilkan"}
+              </button>
+            </div>
           </div>
 
           {message && (
