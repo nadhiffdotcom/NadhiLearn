@@ -9,12 +9,15 @@ export default function UserManager() {
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
     total: 0,
     limit: 10,
   });
+
+  const [currentAdminId, setCurrentAdminId] = useState(null);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -27,9 +30,22 @@ export default function UserManager() {
     role: "student",
   });
 
+  const [resetModalOpen, setResetModalOpen] = useState(false);
+  const [resetUser, setResetUser] = useState(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
+
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [showConfirmResetPassword, setShowConfirmResetPassword] =
+    useState(false);
+
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
+  // ========================================
+  // LOAD USERS
+  // ========================================
   async function loadUsers() {
     setLoading(true);
     setError("");
@@ -48,11 +64,14 @@ export default function UserManager() {
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.message || "Gagal mengambil data pengguna.");
+        throw new Error(
+          data.message || "Gagal mengambil data pengguna."
+        );
       }
 
       setUsers(data.users);
       setPagination(data.pagination);
+      setCurrentAdminId(data.currentAdminId);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -64,6 +83,9 @@ export default function UserManager() {
     loadUsers();
   }, [currentPage, search, role]);
 
+  // ========================================
+  // OPEN ADD MODAL
+  // ========================================
   function openAddModal() {
     setEditMode(false);
     setSelectedId(null);
@@ -78,6 +100,9 @@ export default function UserManager() {
     setModalOpen(true);
   }
 
+  // ========================================
+  // OPEN EDIT MODAL
+  // ========================================
   function openEditModal(user) {
     setEditMode(true);
     setSelectedId(user.id);
@@ -104,6 +129,9 @@ export default function UserManager() {
     });
   }
 
+  // ========================================
+  // ADD / EDIT USER
+  // ========================================
   async function handleSubmit(e) {
     e.preventDefault();
     setMessage("");
@@ -136,7 +164,9 @@ export default function UserManager() {
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.message || "Gagal menyimpan pengguna.");
+        throw new Error(
+          data.message || "Gagal menyimpan pengguna."
+        );
       }
 
       closeModal();
@@ -148,6 +178,9 @@ export default function UserManager() {
     }
   }
 
+  // ========================================
+  // DELETE USER
+  // ========================================
   async function handleDelete(user) {
     const confirmed = window.confirm(
       `Apakah kamu yakin ingin menghapus pengguna ${user.username}?`
@@ -172,10 +205,13 @@ export default function UserManager() {
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.message || "Gagal menghapus pengguna.");
+        throw new Error(
+          data.message || "Gagal menghapus pengguna."
+        );
       }
 
       setMessage(data.message);
+      setError("");
 
       if (users.length === 1 && currentPage > 1) {
         setCurrentPage(currentPage - 1);
@@ -184,11 +220,110 @@ export default function UserManager() {
       }
     } catch (err) {
       setError(err.message);
+      window.alert(err.message);
     }
   }
 
+  // ========================================
+  // OPEN RESET PASSWORD MODAL
+  // ========================================
+  function openResetModal(user) {
+    setMessage("");
+    setError("");
+
+    setResetUser(user);
+    setNewPassword("");
+    setConfirmPassword("");
+
+    setShowResetPassword(false);
+    setShowConfirmResetPassword(false);
+
+    setResetModalOpen(true);
+  }
+
+  // ========================================
+  // CLOSE RESET PASSWORD MODAL
+  // ========================================
+  function closeResetModal() {
+    setResetModalOpen(false);
+    setResetUser(null);
+    setNewPassword("");
+    setConfirmPassword("");
+
+    setShowResetPassword(false);
+    setShowConfirmResetPassword(false);
+  }
+
+  // ========================================
+  // RESET STUDENT / TEACHER PASSWORD
+  // ========================================
+  async function handleResetPassword(e) {
+    e.preventDefault();
+
+    setMessage("");
+    setError("");
+
+    if (!resetUser) {
+      setError("Pengguna tidak ditemukan.");
+      return;
+    }
+
+    if (
+      newPassword.trim().length === 0 ||
+      newPassword.length < 8
+    ) {
+      setError("Password baru minimal 8 karakter.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError("Konfirmasi password tidak cocok.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Apakah kamu yakin ingin mereset password akun ${resetUser.username}?`
+    );
+
+    if (!confirmed) return;
+
+    setResetLoading(true);
+
+    try {
+      const response = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: resetUser.id,
+          password: newPassword,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data.message || "Gagal mereset password."
+        );
+      }
+
+      closeResetModal();
+      setMessage(data.message);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setResetLoading(false);
+    }
+  }
+
+  // ========================================
+  // TEACHER APPROVAL
+  // ========================================
   async function handleTeacherApproval(user, status) {
-    const action = status === "approved" ? "menyetujui" : "menolak";
+    const action =
+      status === "approved" ? "menyetujui" : "menolak";
 
     const confirmed = window.confirm(
       `Apakah kamu yakin ingin ${action} pengajuan Teacher dari ${user.username}?`
@@ -214,7 +349,9 @@ export default function UserManager() {
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.message || "Gagal memproses pengajuan Teacher.");
+        throw new Error(
+          data.message || "Gagal memproses pengajuan Teacher."
+        );
       }
 
       setMessage(data.message);
@@ -224,6 +361,9 @@ export default function UserManager() {
     }
   }
 
+  // ========================================
+  // FORMAT DATE
+  // ========================================
   function formatDate(date) {
     if (!date) return "-";
 
@@ -244,9 +384,13 @@ export default function UserManager() {
     pagination.total
   );
 
+  // ========================================
+  // RENDER
+  // ========================================
   return (
     <div className="min-h-screen bg-gray-50 p-6 md:p-10 text-[#0B1F3A]">
-      {/* Header */}
+
+      {/* HEADER */}
       <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-3xl font-bold">
@@ -266,7 +410,7 @@ export default function UserManager() {
         </button>
       </div>
 
-      {/* Message */}
+      {/* MESSAGE */}
       {message && (
         <div className="mb-5 rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-700">
           {message}
@@ -279,9 +423,10 @@ export default function UserManager() {
         </div>
       )}
 
-      {/* Table Container */}
+      {/* TABLE CONTAINER */}
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-        {/* Search and Filter */}
+
+        {/* SEARCH AND FILTER */}
         <div className="flex flex-col gap-4 border-b border-gray-200 p-5 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-lg font-bold">
@@ -321,7 +466,7 @@ export default function UserManager() {
           </div>
         </div>
 
-        {/* Table */}
+        {/* TABLE */}
         <div className="overflow-x-auto">
           <table className="w-full min-w-[850px] text-left text-sm">
             <thead className="bg-gray-50 text-xs uppercase text-gray-500">
@@ -380,8 +525,8 @@ export default function UserManager() {
                           user.role === "admin"
                             ? "bg-purple-100 text-purple-700"
                             : user.role === "teacher"
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-gray-100 text-gray-700"
+                              ? "bg-blue-100 text-blue-700"
+                              : "bg-gray-100 text-gray-700"
                         }`}
                       >
                         {user.role}
@@ -412,6 +557,7 @@ export default function UserManager() {
 
                     <td className="px-5 py-4">
                       <div className="flex items-center justify-center gap-2">
+
                         {user.teacher_status === "pending" && (
                           <>
                             <button
@@ -441,6 +587,17 @@ export default function UserManager() {
                           Edit
                         </button>
 
+                        {/* RESET PASSWORD STUDENT DAN TEACHER */}
+                        {["teacher", "student"].includes(user.role) &&
+                          Number(user.id) !== Number(currentAdminId) && (
+                            <button
+                              onClick={() => openResetModal(user)}
+                              className="rounded-md border border-yellow-200 px-3 py-2 text-xs font-semibold text-yellow-700 hover:bg-yellow-50"
+                            >
+                              Reset Password
+                            </button>
+                          )}
+
                         <button
                           onClick={() => handleDelete(user)}
                           className="rounded-md border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50"
@@ -456,9 +613,7 @@ export default function UserManager() {
           </table>
         </div>
 
-        
-        
-        {/* Pagination */}
+        {/* PAGINATION */}
         <div className="flex flex-col gap-4 border-t border-gray-200 px-3 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
           <p className="text-center text-sm text-gray-500 sm:text-left">
             Menampilkan {startIndex}–{endIndex} dari {pagination.total} pengguna
@@ -490,7 +645,7 @@ export default function UserManager() {
         </div>
       </div>
 
-      {/* Modal Tambah / Edit */}
+      {/* MODAL TAMBAH / EDIT */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
@@ -593,6 +748,130 @@ export default function UserManager() {
                   className="rounded-lg bg-[#0B1F3A] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#16375f]"
                 >
                   {editMode ? "Simpan Perubahan" : "Tambah Pengguna"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL RESET PASSWORD */}
+      {resetModalOpen && resetUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-xl font-bold">
+                Reset Password {resetUser.role === "student" ? "Student" : "Teacher"}
+              </h2>
+
+              <button
+                onClick={closeResetModal}
+                disabled={resetLoading}
+                className="text-2xl text-gray-400 hover:text-gray-700"
+              >
+                ×
+              </button>
+            </div>
+
+            <p className="mb-5 text-sm text-gray-500">
+              Atur password baru untuk akun{" "}
+              <strong className="text-[#0B1F3A]">
+                {resetUser.username}
+              </strong>.
+            </p>
+
+            <form
+              onSubmit={handleResetPassword}
+              className="space-y-4"
+            >
+              {/* PASSWORD BARU */}
+              <div>
+                <label className="mb-2 block text-sm font-semibold">
+                  Password Baru
+                </label>
+
+                <div className="relative">
+                  <input
+                    type={showResetPassword ? "text" : "password"}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                    className="w-full rounded-lg border border-gray-300 px-4 py-3 pr-24 text-sm outline-none focus:border-[#0B1F3A]"
+                    placeholder="Masukkan password baru"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowResetPassword((prev) => !prev)
+                    }
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-[#0B1F3A] hover:text-[#17385F] focus:outline-none"
+                  >
+                    {showResetPassword ? "Sembunyikan" : "Tampilkan"}
+                  </button>
+                </div>
+              </div>
+
+              {/* KONFIRMASI PASSWORD */}
+              <div>
+                <label className="mb-2 block text-sm font-semibold">
+                  Konfirmasi Password Baru
+                </label>
+
+                <div className="relative">
+                  <input
+                    type={
+                      showConfirmResetPassword ? "text" : "password"
+                    }
+                    value={confirmPassword}
+                    onChange={(e) =>
+                      setConfirmPassword(e.target.value)
+                    }
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                    className="w-full rounded-lg border border-gray-300 px-4 py-3 pr-24 text-sm outline-none focus:border-[#0B1F3A]"
+                    placeholder="Masukkan ulang password baru"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowConfirmResetPassword((prev) => !prev)
+                    }
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-[#0B1F3A] hover:text-[#17385F] focus:outline-none"
+                  >
+                    {showConfirmResetPassword
+                      ? "Sembunyikan"
+                      : "Tampilkan"}
+                  </button>
+                </div>
+              </div>
+
+              <p className="text-xs text-gray-500">
+                Password harus memiliki minimal 8 karakter.
+              </p>
+
+              <div className="flex justify-end gap-3 border-t border-gray-100 pt-5">
+                <button
+                  type="button"
+                  onClick={closeResetModal}
+                  disabled={resetLoading}
+                  className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-semibold hover:bg-gray-100 disabled:opacity-50"
+                >
+                  Batal
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={resetLoading}
+                  className="rounded-lg bg-[#0B1F3A] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#16375f] disabled:opacity-50"
+                >
+                  {resetLoading
+                    ? "Mereset..."
+                    : "Reset Password"}
                 </button>
               </div>
             </form>

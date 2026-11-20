@@ -9,9 +9,8 @@ import { verifyToken } from "@/lib/auth";
 async function checkAdmin() {
   const cookieStore = await cookies();
   const token = cookieStore.get("nadhi_admin_token")?.value;
-  if (!token) {
-    return null;
-  }
+
+  if (!token) return null;
 
   try {
     const decoded = await verifyToken(token);
@@ -65,6 +64,7 @@ export async function GET(request) {
        WHERE (
          $1 = ''
          OR username ILIKE '%' || $1 || '%'
+         OR display_name ILIKE '%' || $1 || '%'
          OR email ILIKE '%' || $1 || '%'
        )
        AND ($2 = '' OR role = $2)`,
@@ -80,6 +80,7 @@ export async function GET(request) {
       `SELECT
          id,
          username,
+         display_name,
          email,
          role,
          teacher_status,
@@ -90,6 +91,7 @@ export async function GET(request) {
        WHERE (
          $1 = ''
          OR username ILIKE '%' || $1 || '%'
+         OR display_name ILIKE '%' || $1 || '%'
          OR email ILIKE '%' || $1 || '%'
        )
        AND ($2 = '' OR role = $2)
@@ -100,6 +102,7 @@ export async function GET(request) {
 
     return NextResponse.json({
       success: true,
+      currentAdminId: admin.id,
       users: result.rows,
       pagination: {
         currentPage,
@@ -133,6 +136,11 @@ export async function POST(request) {
     const body = await request.json();
 
     const username = body.username?.trim();
+    const displayName =
+      body.display_name?.trim() ||
+      body.displayName?.trim() ||
+      username;
+
     const email = body.email?.trim().toLowerCase();
     const password = body.password;
     const role = body.role;
@@ -140,6 +148,20 @@ export async function POST(request) {
     if (!username || !email || !password || !role) {
       return NextResponse.json(
         { success: false, message: "Semua field wajib diisi." },
+        { status: 400 }
+      );
+    }
+
+    if (username.length < 3 || username.length > 50) {
+      return NextResponse.json(
+        { success: false, message: "Username harus 3–50 karakter." },
+        { status: 400 }
+      );
+    }
+
+    if (!displayName || displayName.length > 100) {
+      return NextResponse.json(
+        { success: false, message: "Display Name maksimal 100 karakter." },
         { status: 400 }
       );
     }
@@ -159,16 +181,21 @@ export async function POST(request) {
     const result = await pool.query(
       `INSERT INTO users (
         username,
+        display_name,
         email,
         password,
         role,
         teacher_status,
         approved_at
       )
-      VALUES ($1, $2, $3, $4, $5, CASE WHEN $6 THEN NOW() ELSE NULL END)
+      VALUES (
+        $1, $2, $3, $4, $5, $6,
+        CASE WHEN $7 THEN NOW() ELSE NULL END
+      )
       RETURNING
         id,
         username,
+        display_name,
         email,
         role,
         teacher_status,
@@ -176,6 +203,7 @@ export async function POST(request) {
         created_at`,
       [
         username,
+        displayName,
         email,
         hashedPassword,
         role,
@@ -229,6 +257,13 @@ export async function PUT(request) {
     const role = body.role;
     const password = body.password;
 
+    const displayNameInput =
+      typeof body.display_name === "string"
+        ? body.display_name.trim()
+        : typeof body.displayName === "string"
+          ? body.displayName.trim()
+          : null;
+
     if (
       !Number.isInteger(id) ||
       id <= 0 ||
@@ -238,6 +273,20 @@ export async function PUT(request) {
     ) {
       return NextResponse.json(
         { success: false, message: "Data pengguna tidak lengkap." },
+        { status: 400 }
+      );
+    }
+
+    if (username.length < 3 || username.length > 50) {
+      return NextResponse.json(
+        { success: false, message: "Username harus 3–50 karakter." },
+        { status: 400 }
+      );
+    }
+
+    if (displayNameInput !== null && displayNameInput.length > 100) {
+      return NextResponse.json(
+        { success: false, message: "Display Name maksimal 100 karakter." },
         { status: 400 }
       );
     }
@@ -258,8 +307,53 @@ export async function PUT(request) {
         `UPDATE users
          SET
            username = $1,
-           email = $2,
-           password = $3,
+           display_name = COALESCE(
+             NULLIF($2, ''),
+             display_name,
+             $1
+           ),
+           email = $3,
+           password = $4,
+           role = $5,
+           teacher_status = CASE
+             WHEN $5 = 'teacher' THEN 'approved'
+             ELSE teacher_status
+           END,
+           approved_at = CASE
+             WHEN $5 = 'teacher' THEN COALESCE(approved_at, NOW())
+             ELSE approved_at
+           END,
+           updated_at = NOW()
+         WHERE id = $6
+         RETURNING
+           id,
+           username,
+           display_name,
+           email,
+           role,
+           teacher_status,
+           approved_at,
+           created_at`,
+        [
+          username,
+          displayNameInput,
+          email,
+          hashedPassword,
+          role,
+          id,
+        ]
+      );
+    } else {
+      result = await pool.query(
+        `UPDATE users
+         SET
+           username = $1,
+           display_name = COALESCE(
+             NULLIF($2, ''),
+             display_name,
+             $1
+           ),
+           email = $3,
            role = $4,
            teacher_status = CASE
              WHEN $4 = 'teacher' THEN 'approved'
@@ -274,39 +368,19 @@ export async function PUT(request) {
          RETURNING
            id,
            username,
+           display_name,
            email,
            role,
            teacher_status,
            approved_at,
            created_at`,
-        [username, email, hashedPassword, role, id]
-      );
-    } else {
-      result = await pool.query(
-        `UPDATE users
-         SET
-           username = $1,
-           email = $2,
-           role = $3,
-           teacher_status = CASE
-             WHEN $3 = 'teacher' THEN 'approved'
-             ELSE teacher_status
-           END,
-           approved_at = CASE
-             WHEN $3 = 'teacher' THEN COALESCE(approved_at, NOW())
-             ELSE approved_at
-           END,
-           updated_at = NOW()
-         WHERE id = $4
-         RETURNING
-           id,
-           username,
-           email,
-           role,
-           teacher_status,
-           approved_at,
-           created_at`,
-        [username, email, role, id]
+        [
+          username,
+          displayNameInput,
+          email,
+          role,
+          id,
+        ]
       );
     }
 
@@ -339,8 +413,122 @@ export async function PUT(request) {
   }
 }
 
+// PATCH: Reset password Student dan Teacher oleh Admin
+export async function PATCH(request) {
+  try {
+    const admin = await checkAdmin();
+
+    if (!admin) {
+      return NextResponse.json(
+        { success: false, message: "Akses ditolak." },
+        { status: 403 }
+      );
+    }
+
+    const body = await request.json();
+
+    const id = Number(body.id);
+    const password = body.password;
+
+    if (!Number.isInteger(id) || id <= 0) {
+      return NextResponse.json(
+        { success: false, message: "ID pengguna tidak valid." },
+        { status: 400 }
+      );
+    }
+
+    // Admin tidak boleh mereset password akunnya sendiri
+    if (Number(admin.id) === id) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Admin tidak dapat mereset password akunnya sendiri melalui fitur ini.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (
+      typeof password !== "string" ||
+      password.length < 8 ||
+      password.trim().length === 0
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Password baru minimal 8 karakter.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const userResult = await pool.query(
+      `SELECT id, username, role
+       FROM users
+       WHERE id = $1`,
+      [id]
+    );
+
+    if (userResult.rowCount === 0) {
+      return NextResponse.json(
+        { success: false, message: "Pengguna tidak ditemukan." },
+        { status: 404 }
+      );
+    }
+
+    const targetUser = userResult.rows[0];
+
+    // Hanya Student dan Teacher yang dapat direset
+    if (!["teacher", "student"].includes(targetUser.role)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Reset password hanya berlaku untuk akun Student dan Teacher.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    const updateResult = await pool.query(
+      `UPDATE users
+       SET password = $1,
+           updated_at = NOW()
+       WHERE id = $2`,
+      [hashedPassword, id]
+    );
+
+    if (updateResult.rowCount === 0) {
+      return NextResponse.json(
+        { success: false, message: "Pengguna tidak ditemukan." },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Password akun ${targetUser.role} "${targetUser.username}" berhasil direset.`,
+    });
+  } catch (error) {
+    console.error("RESET USER PASSWORD ERROR:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Gagal mereset password pengguna.",
+      },
+      { status: 500 }
+    );
+  }
+}
+
 // DELETE: Menghapus pengguna
 export async function DELETE(request) {
+  let client;
+
   try {
     const admin = await checkAdmin();
 
@@ -361,45 +549,131 @@ export async function DELETE(request) {
       );
     }
 
+    // Admin tidak boleh menghapus akunnya sendiri
     if (Number(admin.id) === id) {
       return NextResponse.json(
-        { success: false, message: "Admin tidak dapat menghapus akunnya sendiri." },
+        {
+          success: false,
+          message: "Admin tidak dapat menghapus akunnya sendiri.",
+        },
         { status: 400 }
       );
     }
 
-    const result = await pool.query(
-      "DELETE FROM users WHERE id = $1 RETURNING id",
+    client = await pool.connect();
+    await client.query("BEGIN");
+
+    const userResult = await client.query(
+      `SELECT id, username, role
+       FROM users
+       WHERE id = $1
+       FOR UPDATE`,
       [id]
     );
 
-    if (result.rowCount === 0) {
+    if (userResult.rowCount === 0) {
+      await client.query("ROLLBACK");
+
       return NextResponse.json(
         { success: false, message: "Pengguna tidak ditemukan." },
         { status: 404 }
       );
     }
 
+    const targetUser = userResult.rows[0];
+
+    // Teacher tidak boleh dihapus jika masih memiliki kursus
+    if (targetUser.role === "teacher") {
+      const courseResult = await client.query(
+        `SELECT COUNT(*) AS total
+         FROM courses
+         WHERE teacher_id = $1`,
+        [id]
+      );
+
+      const totalCourses = Number(courseResult.rows[0].total);
+
+      if (totalCourses > 0) {
+        await client.query("ROLLBACK");
+
+        return NextResponse.json(
+          {
+            success: false,
+            message: `Akun Teacher "${targetUser.username}" tidak dapat dihapus karena masih memiliki ${totalCourses} kursus. Pindahkan atau hapus seluruh kursus miliknya terlebih dahulu.`,
+          },
+          { status: 409 }
+        );
+      }
+    }
+
+    // Admin terakhir tidak boleh dihapus
+    if (targetUser.role === "admin") {
+      await client.query(
+        "SELECT pg_advisory_xact_lock($1)",
+        [987654321]
+      );
+
+      const adminCountResult = await client.query(
+        `SELECT COUNT(*) AS total
+         FROM users
+         WHERE role = 'admin'`
+      );
+
+      const totalAdmins = Number(adminCountResult.rows[0].total);
+
+      if (totalAdmins <= 1) {
+        await client.query("ROLLBACK");
+
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "Admin terakhir tidak dapat dihapus. NadhiLearn harus memiliki minimal satu Admin.",
+          },
+          { status: 409 }
+        );
+      }
+    }
+
+    await client.query(
+      "DELETE FROM users WHERE id = $1",
+      [id]
+    );
+
+    await client.query("COMMIT");
+
     return NextResponse.json({
       success: true,
-      message: "Pengguna berhasil dihapus.",
+      message: `Pengguna "${targetUser.username}" berhasil dihapus.`,
     });
   } catch (error) {
+    if (client) {
+      await client.query("ROLLBACK").catch(() => {});
+    }
+
     console.error("DELETE USER MANAGEMENT ERROR:", error);
 
     if (error.code === "23503") {
       return NextResponse.json(
         {
           success: false,
-          message: "Pengguna tidak dapat dihapus karena masih memiliki data terkait.",
+          message:
+            "Pengguna tidak dapat dihapus karena masih memiliki data terkait.",
         },
         { status: 409 }
       );
     }
 
     return NextResponse.json(
-      { success: false, message: "Gagal menghapus pengguna." },
+      {
+        success: false,
+        message: "Terjadi kesalahan saat menghapus pengguna.",
+      },
       { status: 500 }
     );
+  } finally {
+    if (client) {
+      client.release();
+    }
   }
 }
