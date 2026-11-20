@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -517,9 +516,15 @@ export default function HomeClient() {
                 Explore Courses
               </a>
 
-              <a href="/register" className="rounded-lg bg-white px-6 py-3 text-center text-sm font-bold text-[#0B1F3A] transition hover:bg-[#0B1F3A] hover:text-white hover:outline hover:outline-1 hover:outline-white sm:px-7 sm:py-4 sm:text-base">
-                Become a Teacher
-              </a>
+              {!checkingUser && !user && (
+                
+                <a
+                  href="/register"
+                  className="rounded-lg bg-white px-6 py-3 text-center text-sm font-bold text-[#0B1F3A] transition hover:bg-[#0B1F3A] hover:text-white hover:outline hover:outline-1 hover:outline-white sm:px-7 sm:py-4 sm:text-base"
+                >
+                  Become a Teacher
+                </a>
+)}
 
               {!checkingUser && userDashboard && (
                 <a href={userDashboard.href} className="rounded-lg bg-white px-6 py-3 text-center text-sm font-bold text-[#0B1F3A] transition hover:bg-[#0B1F3A] hover:text-white hover:outline hover:outline-1 hover:outline-white sm:px-7 sm:py-4 sm:text-base">
