@@ -1,4 +1,3 @@
-
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -108,6 +107,7 @@ export default async function MyCoursesPage({ searchParams }) {
   // ========================================
   // GET MY COURSES + PROGRESS + CERTIFICATE
   // ========================================
+
   const courseResult = await pool.query(
     `
       SELECT
@@ -117,10 +117,10 @@ export default async function MyCoursesPage({ searchParams }) {
         c.thumbnail,
         c.start_date,
         c.end_date,
-        cat.name AS category_name,
-        teacher.username AS teacher_name,
-        e.id AS enrollment_id,
-        e.enrolled_at,
+       cat.name AS category_name,
+      teacher.display_name AS teacher_name,
+      e.id AS enrollment_id,
+      e.enrolled_at,
 
         -- TOTAL MATERI
         (
@@ -164,6 +164,7 @@ export default async function MyCoursesPage({ searchParams }) {
           c.title ILIKE $2
           OR COALESCE(c.description, '') ILIKE $2
           OR COALESCE(cat.name, '') ILIKE $2
+          OR COALESCE(teacher.display_name, '') ILIKE $2
           OR COALESCE(teacher.username, '') ILIKE $2
         )
 
