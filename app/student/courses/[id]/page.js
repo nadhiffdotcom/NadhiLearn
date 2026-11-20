@@ -61,7 +61,6 @@ async function markContentCompleted(formData) {
 
   const student = await getStudent();
 
-  // CHECK ENROLLMENT
   const enrollmentResult = await pool.query(
     `SELECT e.id
      FROM enrollments e
@@ -77,7 +76,6 @@ async function markContentCompleted(formData) {
 
   const enrollmentId = enrollmentResult.rows[0].id;
 
-  // CHECK CONTENT
   const contentResult = await pool.query(
     `SELECT id
      FROM contents
@@ -91,7 +89,6 @@ async function markContentCompleted(formData) {
     redirect(`/student/courses/${courseId}`);
   }
 
-  // SAVE COMPLETED PROGRESS
   await pool.query(
     `INSERT INTO content_progress (
        enrollment_id,
@@ -107,7 +104,6 @@ async function markContentCompleted(formData) {
     [enrollmentId, contentId]
   );
 
-  // CHECK TOTAL PROGRESS
   const progressResult = await pool.query(
     `SELECT
        COUNT(ct.id)::int AS total_contents,
@@ -125,7 +121,6 @@ async function markContentCompleted(formData) {
   const totalContents = progressResult.rows[0].total_contents;
   const completedContents = progressResult.rows[0].completed_contents;
 
-  // AUTOMATICALLY ISSUE CERTIFICATE AT 100%
   if (
     totalContents > 0 &&
     completedContents === totalContents
@@ -185,7 +180,6 @@ async function addComment(formData) {
 
   const student = await getStudent();
 
-  // PASTIKAN STUDENT SUDAH TERDAFTAR PADA COURSE
   const enrollmentResult = await pool.query(
     `SELECT id
      FROM enrollments
@@ -199,7 +193,6 @@ async function addComment(formData) {
     redirect("/student/courses");
   }
 
-  // PASTIKAN MATERI MILIK COURSE TERSEBUT
   const contentResult = await pool.query(
     `SELECT id
      FROM contents
@@ -213,12 +206,70 @@ async function addComment(formData) {
     redirect(`/student/courses/${courseId}`);
   }
 
-  // SIMPAN KOMENTAR
   await pool.query(
     `INSERT INTO comments (content_id, user_id, comment)
      VALUES ($1, $2, $3)`,
     [contentId, student.id, comment]
   );
+
+  revalidatePath(`/student/courses/${courseId}`);
+
+  redirect(`/student/courses/${courseId}`);
+}
+
+// ========================================
+// SERVER ACTION: DELETE COMMENT
+// ========================================
+async function deleteComment(formData) {
+  "use server";
+
+  const courseId = Number(formData.get("course_id"));
+  const contentId = Number(formData.get("content_id"));
+  const commentId = Number(formData.get("comment_id"));
+
+  if (
+    !Number.isSafeInteger(courseId) ||
+    courseId <= 0 ||
+    !Number.isSafeInteger(contentId) ||
+    contentId <= 0 ||
+    !Number.isSafeInteger(commentId) ||
+    commentId <= 0
+  ) {
+    redirect("/student/my-courses");
+  }
+
+  const student = await getStudent();
+
+  // PASTIKAN STUDENT TERDAFTAR PADA COURSE
+  const enrollmentResult = await pool.query(
+    `SELECT id
+     FROM enrollments
+     WHERE student_id = $1
+       AND course_id = $2
+     LIMIT 1`,
+    [student.id, courseId]
+  );
+
+  if (enrollmentResult.rows.length === 0) {
+    redirect("/student/courses");
+  }
+
+  // HANYA HAPUS KOMENTAR MILIK STUDENT YANG LOGIN
+  const deleteResult = await pool.query(
+    `DELETE FROM comments cm
+     USING contents ct
+     WHERE cm.id = $1
+       AND cm.content_id = $2
+       AND cm.user_id = $3
+       AND ct.id = cm.content_id
+       AND ct.course_id = $4
+     RETURNING cm.id`,
+    [commentId, contentId, student.id, courseId]
+  );
+
+  if (deleteResult.rows.length === 0) {
+    redirect(`/student/courses/${courseId}`);
+  }
 
   revalidatePath(`/student/courses/${courseId}`);
 
@@ -236,9 +287,6 @@ export default async function CourseDetailPage({ params }) {
     notFound();
   }
 
-  // ========================================
-  // CHECK LOGIN
-  // ========================================
   const student = await getStudent();
 
   // ========================================
@@ -341,7 +389,9 @@ export default async function CourseDetailPage({ params }) {
     comments = commentsResult.rows;
   }
 
-  // KELOMPOKKAN KOMENTAR BERDASARKAN MATERI
+  // ========================================
+  // GROUP COMMENTS BY CONTENT
+  // ========================================
   const commentsByContent = {};
 
   for (const comment of comments) {
@@ -567,7 +617,7 @@ export default async function CourseDetailPage({ params }) {
                         type="submit"
                         className="w-full rounded-lg bg-[#0B1F3A] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#18395F] sm:w-auto"
                       >
-                        Tandai Selesai
+                        Mark as done
                       </button>
                     </form>
                   )}
@@ -632,6 +682,38 @@ export default async function CourseDetailPage({ params }) {
                           <p className="whitespace-pre-wrap break-words text-sm leading-6 text-gray-700">
                             {comment.comment}
                           </p>
+
+                          {/* DELETE OWN COMMENT */}
+                          {Number(comment.user_id) === Number(student.id) && (
+                            <div className="mt-3 flex justify-end">
+                              <form action={deleteComment}>
+                                <input
+                                  type="hidden"
+                                  name="course_id"
+                                  value={courseId}
+                                />
+
+                                <input
+                                  type="hidden"
+                                  name="content_id"
+                                  value={content.id}
+                                />
+
+                                <input
+                                  type="hidden"
+                                  name="comment_id"
+                                  value={comment.id}
+                                />
+
+                                <button
+                                  type="submit"
+                                  className="text-xs font-semibold text-red-600 transition hover:text-red-800"
+                                >
+                                  Hapus Komentar
+                                </button>
+                              </form>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
