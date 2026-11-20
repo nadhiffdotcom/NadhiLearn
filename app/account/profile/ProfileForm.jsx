@@ -1,9 +1,13 @@
+
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { authFetch } from "@/lib/auth-client";
 
 export default function ProfileForm({ user, overview = {} }) {
+  const router = useRouter();
+
   const [username, setUsername] = useState(user.username);
   const [name, setName] = useState(
     user.display_name || user.username
@@ -22,6 +26,13 @@ export default function ProfileForm({ user, overview = {} }) {
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // State hapus akun
+  const [showDeleteForm, setShowDeleteForm] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [showDeletePassword, setShowDeletePassword] = useState(false);
+  const [deleteMessage, setDeleteMessage] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   const inputClass =
     "w-full rounded-lg border border-[#0B1F3A] bg-white px-4 py-3 text-[#0B1F3A] outline-none focus:ring-2 focus:ring-[#0B1F3A]";
@@ -121,6 +132,83 @@ export default function ProfileForm({ user, overview = {} }) {
       setMessage("Tidak dapat terhubung ke server.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  // Membatalkan penghapusan akun
+  function handleCancelDelete() {
+    setShowDeleteForm(false);
+    setDeletePassword("");
+    setDeleteMessage("");
+    setShowDeletePassword(false);
+  }
+
+  // Menghapus akun sendiri
+  async function handleDeleteAccount(event) {
+    event.preventDefault();
+
+    setDeleteMessage("");
+
+    if (!deletePassword.trim()) {
+      setDeleteMessage("Masukkan password untuk menghapus akun.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Apakah kamu benar-benar yakin ingin menghapus akun NadhiLearn? Tindakan ini tidak dapat dibatalkan."
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeleting(true);
+
+    try {
+      const response = await authFetch("/api/account/profile", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          currentPassword: deletePassword,
+        }),
+      });
+
+      const text = await response.text();
+
+      let data;
+
+      try {
+        data = JSON.parse(text);
+      } catch {
+        console.error("Respons API hapus akun bukan JSON:", {
+          status: response.status,
+          response: text.slice(0, 500),
+        });
+
+        setDeleteMessage("Server mengirim respons yang tidak valid.");
+        return;
+      }
+
+      if (!response.ok) {
+        setDeleteMessage(
+          data.message || "Gagal menghapus akun."
+        );
+        return;
+      }
+
+      // Bersihkan token login dari tab aktif
+      sessionStorage.removeItem("nadhi_token");
+
+      // Arahkan pengguna ke halaman Login
+      router.replace("/login");
+      router.refresh();
+    } catch (error) {
+      console.error("Delete account error:", error);
+      setDeleteMessage("Tidak dapat terhubung ke server.");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -512,6 +600,107 @@ export default function ProfileForm({ user, overview = {} }) {
           {loading ? "Menyimpan..." : "Simpan Perubahan"}
         </button>
       </form>
+
+      {/* HAPUS AKUN */}
+      {["student", "teacher"].includes(user.role) && (
+        <section className="rounded-2xl border border-red-200 bg-white p-6 text-[#0B1F3A] md:p-8">
+          <h2 className="mb-2 text-xl font-bold text-red-700">
+            Hapus Akun
+          </h2>
+
+          <p className="mb-5 text-sm leading-relaxed text-gray-600">
+            Penghapusan akun bersifat permanen dan tidak dapat
+            dibatalkan. Pastikan kamu sudah mempertimbangkan
+            keputusan ini.
+          </p>
+
+          {user.role === "teacher" && (
+            <p className="mb-5 rounded-lg bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
+              Sebagai Teacher, kamu hanya dapat menghapus akun
+              setelah tidak memiliki course yang dikelola.
+              Course harus dipindahkan atau dihapus terlebih dahulu.
+            </p>
+          )}
+
+          {!showDeleteForm ? (
+            <button
+              type="button"
+              onClick={() => {
+                setDeleteMessage("");
+                setShowDeleteForm(true);
+              }}
+              className="w-full rounded-lg border border-red-600 px-6 py-3 font-bold text-red-700 transition hover:bg-red-600 hover:text-white"
+            >
+              Hapus Akun Saya
+            </button>
+          ) : (
+            <form onSubmit={handleDeleteAccount}>
+              <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-800">
+                <p className="font-bold">
+                  Apakah kamu yakin ingin menghapus akun?
+                </p>
+
+                <p className="mt-2">
+                  {user.role === "student"
+                    ? "Akun, riwayat enrollment, progres belajar, dan komentar milikmu akan dihapus secara permanen."
+                    : "Akun dan komentar milikmu akan dihapus. Penghapusan hanya bisa dilakukan jika kamu sudah tidak memiliki course."}
+                </p>
+              </div>
+
+              <label className="mb-2 block font-semibold">
+                Masukkan Password Saat Ini
+              </label>
+
+              <div className="relative mb-5">
+                <input
+                  type={showDeletePassword ? "text" : "password"}
+                  value={deletePassword}
+                  onChange={(event) => setDeletePassword(event.target.value)}
+                  className={`${inputClass} pr-24`}
+                  autoComplete="current-password"
+                  placeholder="Masukkan password untuk konfirmasi"
+                  required
+                />
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowDeletePassword((prev) => !prev)
+                  }
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#0B1F3A] hover:underline"
+                >
+                  {showDeletePassword ? "Sembunyikan" : "Tampilkan"}
+                </button>
+              </div>
+
+              {deleteMessage && (
+                <div className="mb-5 rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-800">
+                  {deleteMessage}
+                </div>
+              )}
+
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <button
+                  type="submit"
+                  disabled={deleting}
+                  className="w-full rounded-lg bg-red-600 px-6 py-3 font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {deleting ? "Menghapus Akun..." : "Ya, Hapus Akun"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleCancelDelete}
+                  disabled={deleting}
+                  className="w-full rounded-lg border border-[#0B1F3A] px-6 py-3 font-bold text-[#0B1F3A] transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Batal
+                </button>
+              </div>
+            </form>
+          )}
+        </section>
+      )}
     </div>
   );
 }

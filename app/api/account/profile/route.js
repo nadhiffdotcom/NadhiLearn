@@ -191,7 +191,7 @@ export async function PUT(request) {
 
     const updatedUser = updateResult.rows[0];
 
-    // 9. Kirim hasil tanpa mengubah cookie atau token tab lain
+    // 9. Kirim hasil tanpa mengubah token tab lain
     return NextResponse.json({
       success: true,
       message: "Pengaturan akun berhasil diperbarui.",
@@ -223,5 +223,199 @@ export async function PUT(request) {
       },
       { status: 500 }
     );
+  }
+}
+
+// ==========================================
+// DELETE ACCOUNT
+// ==========================================
+
+export async function DELETE(request) {
+  let client;
+  let transactionStarted = false;
+
+  try {
+    // 1. Periksa autentikasi pengguna
+    const auth = await getAuthenticatedUser(request);
+
+    if (!auth.user) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: auth.error,
+        },
+        { status: auth.status }
+      );
+    }
+
+    const userId = auth.user.id;
+
+    // 2. Hanya Student dan Teacher yang boleh menghapus akun sendiri
+    if (!["student", "teacher"].includes(auth.user.role)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Admin tidak dapat menghapus akun melalui fitur ini.",
+        },
+        { status: 403 }
+      );
+    }
+
+    // 3. Ambil password konfirmasi
+    const body = await request.json();
+    const currentPassword = body.currentPassword;
+
+    if (
+      typeof currentPassword !== "string" ||
+      !currentPassword.trim()
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Masukkan password untuk mengonfirmasi penghapusan akun.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // 4. Mulai transaksi database
+    client = await pool.connect();
+
+    await client.query("BEGIN");
+    transactionStarted = true;
+
+    // 5. Ambil dan kunci akun yang akan dihapus
+    const userResult = await client.query(
+      `SELECT id, password, role
+       FROM users
+       WHERE id = $1
+       FOR UPDATE`,
+      [userId]
+    );
+
+    if (userResult.rows.length === 0) {
+      await client.query("ROLLBACK");
+      transactionStarted = false;
+
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Akun tidak ditemukan.",
+        },
+        { status: 404 }
+      );
+    }
+
+    const user = userResult.rows[0];
+
+    // 6. Pastikan role masih sesuai
+    if (!["student", "teacher"].includes(user.role)) {
+      await client.query("ROLLBACK");
+      transactionStarted = false;
+
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Role akun tidak diizinkan menghapus akun.",
+        },
+        { status: 403 }
+      );
+    }
+
+    // 7. Verifikasi password
+    const passwordMatch = await bcrypt.compare(
+      currentPassword,
+      user.password
+    );
+
+    if (!passwordMatch) {
+      await client.query("ROLLBACK");
+      transactionStarted = false;
+
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Password yang kamu masukkan salah.",
+        },
+        { status: 401 }
+      );
+    }
+
+    // 8. Jika Teacher, periksa kepemilikan kursus
+    if (user.role === "teacher") {
+      const courseResult = await client.query(
+        `SELECT id
+         FROM courses
+         WHERE teacher_id = $1
+         LIMIT 1`,
+        [user.id]
+      );
+
+      if (courseResult.rows.length > 0) {
+        await client.query("ROLLBACK");
+        transactionStarted = false;
+
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "Akun belum dapat dihapus karena kamu masih memiliki kursus. Pindahkan atau hapus seluruh kursus milikmu terlebih dahulu.",
+          },
+          { status: 409 }
+        );
+      }
+    }
+
+    // 9. Hapus akun
+    // Data yang memiliki ON DELETE CASCADE akan ikut ditangani
+    // oleh PostgreSQL sesuai relasi database.
+    await client.query(
+      `DELETE FROM users
+       WHERE id = $1`,
+      [user.id]
+    );
+
+    // 10. Simpan transaksi
+    await client.query("COMMIT");
+    transactionStarted = false;
+
+    return NextResponse.json({
+      success: true,
+      message: "Akun berhasil dihapus.",
+    });
+  } catch (error) {
+    if (client && transactionStarted) {
+      try {
+        await client.query("ROLLBACK");
+      } catch (rollbackError) {
+        console.error("Rollback delete account error:", rollbackError);
+      }
+    }
+
+    console.error("Delete account error:", error);
+
+    // Foreign key masih memiliki relasi yang membatasi penghapusan
+    if (error.code === "23503") {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Akun belum dapat dihapus karena masih memiliki data yang terkait. Silakan hubungi Admin.",
+        },
+        { status: 409 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Terjadi kesalahan saat menghapus akun.",
+      },
+      { status: 500 }
+    );
+  } finally {
+    if (client) {
+      client.release();
+    }
   }
 }
