@@ -43,19 +43,27 @@ export default async function CertificatePage({ params }) {
   const student = await getStudent();
 
   const result = await pool.query(
-    `SELECT
-       cert.id,
-       cert.certificate_code,
-       cert.student_name,
-       cert.course_title,
-       cert.issued_at
-     FROM certificates cert
-     JOIN enrollments e ON e.id = cert.enrollment_id
-     WHERE cert.id = $1
-       AND e.student_id = $2
-     LIMIT 1`,
-    [certificateId, student.id]
-  );
+  `SELECT
+     cert.id,
+     cert.certificate_code,
+     COALESCE(
+       NULLIF(BTRIM(u.display_name), ''),
+       'Nama belum diatur'
+     ) AS student_name,
+     c.title AS course_title,
+     cert.issued_at
+   FROM certificates cert
+   JOIN enrollments e
+     ON e.id = cert.enrollment_id
+   JOIN users u
+     ON u.id = e.student_id
+   JOIN courses c
+     ON c.id = e.course_id
+   WHERE cert.id = $1
+     AND e.student_id = $2
+   LIMIT 1`,
+  [certificateId, student.id]
+);
 
   if (result.rows.length === 0) {
     notFound();

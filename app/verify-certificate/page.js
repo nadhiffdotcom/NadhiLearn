@@ -31,19 +31,28 @@ export default async function VerifyCertificatePage({ searchParams }) {
   if (code) {
     searched = true;
 
-    const result = await pool.query(
-      `SELECT
-         certificate_code,
-         student_name,
-         course_title,
-         issued_at
-       FROM certificates
-       WHERE UPPER(certificate_code) = UPPER($1)
-       LIMIT 1`,
-      [code]
-    );
+const result = await pool.query(
+  `SELECT
+     cert.certificate_code,
+     COALESCE(
+       NULLIF(BTRIM(u.display_name), ''),
+       'Nama belum diatur'
+     ) AS student_name,
+     c.title AS course_title,
+     cert.issued_at
+   FROM certificates cert
+   JOIN enrollments e
+     ON e.id = cert.enrollment_id
+   JOIN users u
+     ON u.id = e.student_id
+   JOIN courses c
+     ON c.id = e.course_id
+   WHERE UPPER(cert.certificate_code) = UPPER($1)
+   LIMIT 1`,
+  [code]
+);
 
-    certificate = result.rows[0] || null;
+certificate = result.rows[0] || null;
   }
 
   return (
