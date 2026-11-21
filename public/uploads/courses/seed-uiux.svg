@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" width="640" height="400" role="img" aria-label="Sampul kursus">
+<defs><radialGradient id="r" cx=".8" cy=".1" r=".9"><stop offset="0" stop-color="#22C1E6" stop-opacity=".45"/><stop offset="1" stop-color="#0A2E3D" stop-opacity="0"/></radialGradient></defs>
+<rect width="640" height="400" fill="#0A2E3D"/><rect width="640" height="400" fill="url(#r)"/>
+<circle cx="560" cy="60" r="90" fill="#22C1E6" opacity=".12"/><circle cx="70" cy="350" r="70" fill="#22C1E6" opacity=".1"/>
+<g fill="none" stroke="#22C1E6" stroke-width="12" stroke-linejoin="round"><rect x="180" y="120" width="280" height="200" rx="22"/><path d="M180 180h280M250 180v140"/></g>
+</svg>
