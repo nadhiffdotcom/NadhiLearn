@@ -43,27 +43,27 @@ export default async function CertificatePage({ params }) {
   const student = await getStudent();
 
   const result = await pool.query(
-  `SELECT
-     cert.id,
-     cert.certificate_code,
-     COALESCE(
-       NULLIF(BTRIM(u.display_name), ''),
-       'Nama belum diatur'
-     ) AS student_name,
-     c.title AS course_title,
-     cert.issued_at
-   FROM certificates cert
-   JOIN enrollments e
-     ON e.id = cert.enrollment_id
-   JOIN users u
-     ON u.id = e.student_id
-   JOIN courses c
-     ON c.id = e.course_id
-   WHERE cert.id = $1
-     AND e.student_id = $2
-   LIMIT 1`,
-  [certificateId, student.id]
-);
+    `SELECT
+       cert.id,
+       cert.certificate_code,
+       COALESCE(
+         NULLIF(BTRIM(u.display_name), ''),
+         'Nama belum diatur'
+       ) AS student_name,
+       c.title AS course_title,
+       cert.issued_at
+     FROM certificates cert
+     JOIN enrollments e
+       ON e.id = cert.enrollment_id
+     JOIN users u
+       ON u.id = e.student_id
+     JOIN courses c
+       ON c.id = e.course_id
+     WHERE cert.id = $1
+       AND e.student_id = $2
+     LIMIT 1`,
+    [certificateId, student.id]
+  );
 
   if (result.rows.length === 0) {
     notFound();
@@ -199,145 +199,149 @@ export default async function CertificatePage({ params }) {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
 
-       
-            @media print {
-            @page {
-                size: 297mm 210mm;
-                margin: 0;
-            }
+        @media print {
+          @page {
+          size: A4 landscape;
+          margin: 0;
+        }
 
-            *,
-            *::before,
-            *::after {
-                box-sizing: border-box !important;
-            }
+          *,
+          *::before,
+          *::after {
+            box-sizing: border-box !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
 
-            html,
-            body {
-                display: block !important;
-                width: 297mm !important;
-                height: 210mm !important;
-                min-height: 0 !important;
-                max-height: 210mm !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                overflow: hidden !important;
-                background: white !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
+          html,
+          body {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 297mm !important;
+            min-height: 0 !important;
+            background: white !important;
+          }
 
-            /* Ratakan wrapper aplikasi yang menjadi induk sertifikat */
-            body *:has(.certificate-page) {
-                display: contents !important;
-            }
+          body * {
+            visibility: hidden !important;
+          }
 
-            /* Sembunyikan elemen lain di luar sertifikat */
-            body *:not(:has(.certificate-page)):not(.certificate-page):not(.certificate-page *) {
-                display: none !important;
-            }
+          .certificate-page,
+          .certificate-page * {
+            visibility: visible !important;
+          }
 
-            /* Hilangkan tombol */
-            .no-print {
-                display: none !important;
-            }
+          .no-print {
+            display: none !important;
+          }
 
-            /* Area sertifikat */
-            .certificate-page {
-                position: relative !important;
-                display: block !important;
-                width: 297mm !important;
-                height: 210mm !important;
-                min-height: 0 !important;
-                max-height: 210mm !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                overflow: hidden !important;
-                background: white !important;
-                break-after: avoid !important;
-                page-break-after: avoid !important;
-            }
+          .certificate-page {
+            position: static !important;
+            display: block !important;
+            width: 297mm !important;
+            height: auto !important;
+            min-height: 0 !important;
+            max-height: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: visible !important;
+            background: white !important;
+          }
 
-            /* Kertas sertifikat */
-            .certificate-paper {
-                position: relative !important;
-                display: block !important;
-                width: 297mm !important;
-                height: 210mm !important;
-                min-height: 0 !important;
-                max-height: 210mm !important;
-                max-width: none !important;
-                margin: 0 !important;
-                padding: 5mm !important;
-                aspect-ratio: auto !important;
-                overflow: hidden !important;
-                background: white !important;
-                box-shadow: none !important;
-                break-inside: avoid !important;
-                page-break-inside: avoid !important;
-            }
+          .certificate-paper {
+            position: relative !important;
+            display: block !important;
+            width: 297mm !important;
+            height: 210mm !important;
+            min-height: 0 !important;
+            max-height: 210mm !important;
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 5mm !important;
+            aspect-ratio: auto !important;
+            overflow: hidden !important;
+            background: white !important;
+            box-shadow: none !important;
 
-            /* Border luar */
-            .certificate-paper > div {
-                display: flex !important;
-                width: 100% !important;
-                height: 100% !important;
-                min-height: 0 !important;
-                max-height: 100% !important;
-                padding: 1mm !important;
-                overflow: hidden !important;
-            }
+            /* Sertifikat pertama tidak memaksa halaman tambahan */
+            break-after: auto !important;
+            page-break-after: auto !important;
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
 
-            /* Border dalam */
-            .certificate-paper > div > div {
-                display: flex !important;
-                flex-direction: column !important;
-                align-items: center !important;
-                justify-content: space-between !important;
-                width: 100% !important;
-                height: 100% !important;
-                min-height: 0 !important;
-                max-height: 100% !important;
-                padding: 3mm 10mm !important;
-                gap: 0 !important;
-                overflow: hidden !important;
-            }
+          /* Pemisah hanya setelah sertifikat pertama jika ada salinan */
+        .certificate-paper-has-copies {
+          break-after: page !important;
+          page-break-after: always !important;
+        }
 
-            .certificate-paper > div > div > * {
-                margin-top: 0 !important;
-                margin-bottom: 0 !important;
-                flex-shrink: 1 !important;
-            }
+        /* Salinan tidak membuat pemisah tambahan */
+        .certificate-paper-copy {
+          break-before: auto !important;
+          page-break-before: auto !important;
+          break-after: auto !important;
+          page-break-after: auto !important;
+        }
 
-            /* Logo */
-            .certificate-paper img[alt="Logo NadhiLearn"] {
-                width: 12mm !important;
-                height: 12mm !important;
-            }
+          .certificate-paper > div {
+            display: flex !important;
+            width: 100% !important;
+            height: 100% !important;
+            min-height: 0 !important;
+            max-height: 100% !important;
+            padding: 1mm !important;
+            overflow: hidden !important;
+          }
 
-            /* Nama student */
-            .certificate-paper h2 {
-                line-height: 1.1 !important;
-            }
+          .certificate-paper > div > div {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            width: 100% !important;
+            height: 100% !important;
+            min-height: 0 !important;
+            max-height: 100% !important;
+            padding: 3mm 10mm !important;
+            gap: 0 !important;
+            overflow: hidden !important;
+          }
 
-            /* Tanda tangan */
-            .certificate-paper img[alt^="Tanda tangan"] {
-                bottom: -8mm !important;
-                height: 30mm !important;
-                width: 45mm !important;
-            }
+          .certificate-paper > div > div > * {
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+            flex-shrink: 1 !important;
+          }
 
-            /* Nama course */
-            .certificate-paper h3 {
-                margin-top: 1mm !important;
-            }
+          .certificate-paper img[alt="Logo NadhiLearn"] {
+            width: 12mm !important;
+            height: 12mm !important;
+          }
 
-            /* Certificate ID */
-            .certificate-paper > div > div > div:last-child {
-                padding-top: 1mm !important;
-            }
-            }
+          .certificate-paper h1 {
+            font-size: 25pt !important;
+          }
 
+          .certificate-paper h2 {
+            line-height: 1.1 !important;
+          }
+
+          .certificate-paper h3 {
+            margin-top: 1mm !important;
+            font-size: 17pt !important;
+          }
+
+          .certificate-paper img[alt^="Tanda tangan"] {
+            bottom: -8mm !important;
+            height: 30mm !important;
+            width: 45mm !important;
+          }
+
+          .certificate-paper > div > div > div:last-child {
+            padding-top: 1mm !important;
+          }
+        }
       `}</style>
     </div>
   );
