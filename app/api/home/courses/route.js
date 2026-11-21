@@ -67,7 +67,7 @@ export async function GET(request) {
           c.start_date,
           c.end_date,
           cat.name AS category_name,
-          u.username AS teacher_name,
+          u.display_name AS teacher_name,
           u.email AS teacher_email,
 
           (
@@ -129,7 +129,7 @@ export async function GET(request) {
     }
 
     // ========================================
-    // GET HOMEPAGE COURSES (EXISTING)
+    // GET HOMEPAGE COURSES
     // ========================================
     const search = searchParams.get("search")?.trim() || null;
     const categoryId = searchParams.get("category_id") || null;
@@ -146,7 +146,7 @@ export async function GET(request) {
         c.end_date,
         c.created_at,
         cat.name AS category_name,
-        u.username AS teacher_name,
+        u.display_name AS teacher_name,
         u.email AS teacher_email,
         COUNT(e.id)::int AS enrollment_count
       FROM courses c
@@ -162,7 +162,7 @@ export async function GET(request) {
       GROUP BY
         c.id,
         cat.name,
-        u.username,
+        u.display_name,
         u.email
       ORDER BY
         COUNT(e.id) DESC,
