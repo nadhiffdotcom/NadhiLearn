@@ -1,0 +1,652 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { authFetch } from "@/lib/auth-client";
+
+const initialForm = {
+  course_id: "",
+  title: "",
+  description: "",
+  content: "",
+  order_index: "1",
+};
+
+export default function ContentManager() {
+  const [contents, setContents] = useState([]);
+  const [courses, setCourses] = useState([]);
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const [search, setSearch] = useState("");
+  const [selectedCourse, setSelectedCourse] = useState("");
+  const [page, setPage] = useState(1);
+
+  const [pagination, setPagination] = useState({
+    page: 1,
+    total: 0,
+    totalPages: 0,
+  });
+
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [form, setForm] = useState(initialForm);
+
+  const [message, setMessage] = useState("");
+
+  // =====================================
+  // FETCH CONTENTS
+  // =====================================
+
+  async function fetchContents(signal) {
+    setLoading(true);
+
+    try {
+      const params = new URLSearchParams({
+        page: String(page),
+        search: search.trim(),
+      });
+
+      if (selectedCourse) {
+        params.set("course_id", selectedCourse);
+      }
+
+         const response = await authFetch(
+        `/api/contents?${params.toString()}`,
+        { signal }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Gagal mengambil data materi."
+        );
+      }
+
+      setContents(data.contents || []);
+      setCourses(data.courses || []);
+
+      setPagination(
+        data.pagination || {
+          page: 1,
+          total: 0,
+          totalPages: 0,
+        }
+      );
+    } catch (error) {
+      if (error.name === "AbortError") return;
+
+      setMessage(
+        error.message || "Gagal menghubungi server."
+      );
+    } finally {
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
+    }
+  }
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const timeoutId = setTimeout(() => {
+      fetchContents(controller.signal);
+    }, 350);
+
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [page, search, selectedCourse]);
+
+  // =====================================
+  // FORM HANDLING
+  // =====================================
+
+  function handleChange(event) {
+    const { name, value } = event.target;
+
+    if (name === "course_id" && !editingId) {
+      const selected = courses.find(
+        (course) => String(course.id) === value
+      );
+
+      setForm((previous) => ({
+        ...previous,
+        course_id: value,
+        order_index: selected
+          ? String(selected.next_order_index || 1)
+          : "1",
+      }));
+
+      return;
+    }
+
+    setForm((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
+  }
+
+  function openAddForm() {
+    setEditingId(null);
+
+    const courseId = selectedCourse || "";
+    const selected = courses.find(
+      (course) => String(course.id) === String(courseId)
+    );
+
+    setForm({
+      ...initialForm,
+      course_id: courseId,
+      order_index: selected
+        ? String(selected.next_order_index || 1)
+        : "1",
+    });
+
+    setMessage("");
+    setShowForm(true);
+  }
+
+  function openEditForm(item) {
+    setEditingId(item.id);
+
+    setForm({
+      course_id: String(item.course_id),
+      title: item.title || "",
+      description: item.description || "",
+      content: item.content || "",
+      order_index: String(item.order_index),
+    });
+
+    setMessage("");
+    setShowForm(true);
+  }
+
+  function closeForm() {
+    setShowForm(false);
+    setEditingId(null);
+    setForm(initialForm);
+  }
+
+  // =====================================
+  // ADD / UPDATE CONTENT
+  // =====================================
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+
+    setSaving(true);
+    setMessage("");
+
+    try {
+      if (!form.course_id) {
+        throw new Error("Silakan pilih kursus terlebih dahulu.");
+      }
+
+      const response = await authFetch("/api/contents", {
+        method: editingId ? "PUT" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...form,
+          id: editingId,
+          course_id: Number(form.course_id),
+          order_index: Number(form.order_index),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Gagal menyimpan materi."
+        );
+      }
+
+      closeForm();
+      setMessage(data.message);
+
+      await fetchContents();
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // =====================================
+  // DELETE CONTENT
+  // =====================================
+
+  async function handleDelete(id) {
+    const confirmed = window.confirm(
+      "Apakah kamu yakin ingin menghapus materi ini?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const response = await authFetch(
+        `/api/contents?id=${id}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Gagal menghapus materi."
+        );
+      }
+
+      setMessage(data.message);
+
+      if (contents.length === 1 && page > 1) {
+        setPage((previous) => previous - 1);
+      } else {
+        await fetchContents();
+      }
+    } catch (error) {
+      setMessage(error.message);
+    }
+  }
+
+  // =====================================
+  // PAGINATION
+  // =====================================
+
+  const firstNumber =
+    pagination.total === 0
+      ? 0
+      : (page - 1) * 10 + 1;
+
+  const lastNumber = Math.min(
+    page * 10,
+    pagination.total || 0
+  );
+
+  // =====================================
+  // RENDER
+  // =====================================
+
+  return (
+    <div className="min-h-screen bg-[#f4f7fc] p-6 md:p-8">
+
+      {/* HEADER */}
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-[#101b36]">
+            Content Management
+          </h1>
+
+          <p className="mt-2 text-gray-600">
+            Kelola materi pembelajaran dari kursus yang kamu ajar.
+          </p>
+        </div>
+
+        <button
+          onClick={openAddForm}
+          disabled={courses.length === 0}
+          className="rounded-lg bg-[#0a1f4a] px-5 py-3 font-semibold text-white transition hover:bg-[#1b3a7a] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          + Tambah Materi
+        </button>
+      </div>
+
+      {/* MESSAGE */}
+      {message && (
+        <div className="mb-5 flex items-center justify-between rounded-lg border border-[#dce3ef] bg-white px-4 py-3 text-sm text-[#101b36]">
+          <p>{message}</p>
+
+          <button
+            onClick={() => setMessage("")}
+            className="font-bold"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* FILTER */}
+      <div className="mb-6 grid gap-4 rounded-xl border border-[#dce3ef] bg-white p-5 md:grid-cols-2">
+
+        <div>
+          <label className="mb-2 block text-sm font-semibold text-[#101b36]">
+            Pilih Kursus
+          </label>
+
+          <select
+            value={selectedCourse}
+            onChange={(event) => {
+              setSelectedCourse(event.target.value);
+              setPage(1);
+            }}
+            className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-[#c2cce0]"
+          >
+            <option value="">Semua Kursus</option>
+
+            {courses.map((course) => (
+              <option key={course.id} value={course.id}>
+                {course.title}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="mb-2 block text-sm font-semibold text-[#101b36]">
+            Cari Materi
+          </label>
+
+          <input
+            type="text"
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
+            placeholder="Cari judul, deskripsi, atau isi materi..."
+            className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-[#c2cce0]"
+          />
+        </div>
+      </div>
+
+      {/* CONTENT TABLE */}
+      <div className="overflow-hidden rounded-xl border border-[#dce3ef] bg-white">
+
+        <div className="border-b border-[#dce3ef] px-6 py-5">
+          <h2 className="text-lg font-bold text-[#101b36]">
+            Daftar Materi
+          </h2>
+
+          <p className="mt-1 text-sm text-gray-500">
+            Total {pagination.total || 0} materi
+          </p>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[900px] text-left text-sm">
+
+            <thead className="bg-[#f4f7fc] text-[#101b36]">
+              <tr>
+                <th className="px-5 py-4">No.</th>
+                <th className="px-5 py-4">Urutan</th>
+                <th className="px-5 py-4">Judul Materi</th>
+                <th className="px-5 py-4">Nama Kursus</th>
+                <th className="px-5 py-4">Deskripsi</th>
+                <th className="px-5 py-4 text-center">Aksi</th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-gray-100">
+
+              {loading ? (
+                <tr>
+                  <td colSpan="6" className="px-5 py-12 text-center text-gray-500">
+                    Memuat data materi...
+                  </td>
+                </tr>
+              ) : contents.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className="px-5 py-12 text-center text-gray-500">
+                    Belum ada materi yang tersedia.
+                  </td>
+                </tr>
+              ) : (
+                contents.map((item, index) => (
+                  <tr
+                    key={item.id}
+                    className="transition hover:bg-[#f4f7fc]"
+                  >
+                    <td className="px-5 py-4">
+                      {(page - 1) * 10 + index + 1}
+                    </td>
+
+                    <td className="px-5 py-4 font-semibold text-[#101b36]">
+                      {item.order_index}
+                    </td>
+
+                    <td className="max-w-[220px] px-5 py-4">
+                      <p className="font-semibold text-[#101b36]">
+                        {item.title}
+                      </p>
+                    </td>
+
+                    <td className="px-5 py-4">
+                      {item.course_title}
+                    </td>
+
+                    <td className="max-w-[220px] px-5 py-4">
+                      <p className="line-clamp-2 text-gray-500">
+                        {item.description || "-"}
+                      </p>
+                    </td>
+
+                    <td className="px-5 py-4">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => openEditForm(item)}
+                          className="rounded-md border border-[#c2cce0] px-3 py-2 font-semibold text-[#101b36] transition hover:bg-[#0a1f4a] hover:text-white"
+                        >
+                          Edit
+                        </button>
+
+                        <button
+                          onClick={() => handleDelete(item.id)}
+                          className="rounded-md border border-red-600 px-3 py-2 font-semibold text-red-600 transition hover:bg-red-600 hover:text-white"
+                        >
+                          Hapus
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+
+            </tbody>
+          </table>
+        </div>
+
+                  {/* PAGINATION */}
+          <div className="flex flex-col gap-4 border-t border-[#dce3ef] px-3 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+
+            <p className="text-center text-sm text-gray-600 sm:text-left">
+              Menampilkan {firstNumber}-{lastNumber} dari{" "}
+              {pagination.total || 0} materi
+            </p>
+
+            <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1 sm:w-auto sm:gap-2">
+
+              <button
+                disabled={page <= 1 || loading}
+                onClick={() => setPage((previous) => previous - 1)}
+                className="min-w-0 whitespace-nowrap rounded-lg border border-gray-300 px-1 py-2 text-[11px] font-semibold text-[#101b36] disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto sm:px-4 sm:text-sm"
+              >
+                Sebelumnya
+              </button>
+
+              <span className="whitespace-nowrap px-0.5 text-center text-xs font-semibold text-[#101b36] sm:px-2 sm:text-sm">
+                {page} / {Math.max(1, pagination.totalPages || 0)}
+              </span>
+
+              <button
+                disabled={
+                  page >= (pagination.totalPages || 1) || loading
+                }
+                onClick={() => setPage((previous) => previous + 1)}
+                className="min-w-0 whitespace-nowrap rounded-lg border border-gray-300 px-1 py-2 text-[11px] font-semibold text-[#101b36] disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto sm:px-4 sm:text-sm"
+              >
+                Selanjutnya
+              </button>
+
+            </div>
+          </div>
+      </div>
+
+      {/* ADD / EDIT FORM */}
+      {showForm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/50 p-4">
+
+          <div className="my-8 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-[#101b36]">
+                {editingId ? "Edit Materi" : "Tambah Materi"}
+              </h2>
+
+              <button
+                onClick={closeForm}
+                className="text-2xl text-gray-500 hover:text-black"
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+
+              {/* COURSE */}
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-[#101b36]">
+                  Kursus *
+                </label>
+
+                <select
+                  name="course_id"
+                  value={form.course_id}
+                  onChange={handleChange}
+                  required
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-[#c2cce0]"
+                >
+                  <option value="">Pilih Kursus</option>
+
+                  {courses.map((course) => (
+                    <option key={course.id} value={course.id}>
+                      {course.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* TITLE */}
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-[#101b36]">
+                  Judul Materi *
+                </label>
+
+                <input
+                  type="text"
+                  name="title"
+                  value={form.title}
+                  onChange={handleChange}
+                  maxLength={200}
+                  required
+                  placeholder="Masukkan judul materi"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-[#c2cce0]"
+                />
+              </div>
+
+              {/* DESCRIPTION */}
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-[#101b36]">
+                  Deskripsi Materi
+                </label>
+
+                <textarea
+                  name="description"
+                  value={form.description}
+                  onChange={handleChange}
+                  rows={3}
+                  placeholder="Masukkan deskripsi singkat materi"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-[#c2cce0]"
+                />
+              </div>
+
+              {/* CONTENT */}
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-[#101b36]">
+                  Isi Materi *
+                </label>
+
+                <textarea
+                  name="content"
+                  value={form.content}
+                  onChange={handleChange}
+                  rows={8}
+                  required
+                  placeholder="Tuliskan isi materi pembelajaran di sini..."
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-[#c2cce0]"
+                />
+
+                <p className="mt-2 text-xs text-gray-500">
+                  Isi materi dapat berupa teks pembelajaran atau tautan sumber belajar.
+                </p>
+              </div>
+
+              {/* ORDER */}
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-[#101b36]">
+                  Urutan Materi *
+                </label>
+
+                <input
+                  type="number"
+                  name="order_index"
+                  value={form.order_index}
+                  onChange={handleChange}
+                  min="1"
+                  step="1"
+                  required
+                  readOnly={!editingId}
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none read-only:bg-gray-100 focus:border-[#c2cce0]"
+                />
+
+                {!editingId && (
+                  <p className="mt-2 text-xs text-gray-500">
+                    Nomor urut berikutnya dihitung otomatis berdasarkan kursus yang dipilih.
+                  </p>
+                )}
+              </div>
+
+              {/* ACTIONS */}
+              <div className="flex flex-wrap justify-end gap-3 border-t border-[#dce3ef] pt-5">
+
+                <button
+                  type="button"
+                  onClick={closeForm}
+                  disabled={saving}
+                  className="rounded-lg border border-gray-300 px-5 py-3 font-semibold text-gray-600 hover:bg-[#e7edf7] disabled:opacity-50"
+                >
+                  Batal
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={saving || courses.length === 0}
+                  className="rounded-lg bg-[#0a1f4a] px-6 py-3 font-semibold text-white hover:bg-[#1b3a7a] disabled:opacity-50"
+                >
+                  {saving
+                    ? "Menyimpan..."
+                    : editingId
+                      ? "Simpan Perubahan"
+                      : "Tambah Materi"}
+                </button>
+
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {!loading && courses.length === 0 && (
+        <div className="mt-5 rounded-lg border border-[#dce3ef] bg-white p-5 text-sm text-gray-600">
+          Kamu belum memiliki kursus. Tambahkan kursus terlebih dahulu sebelum membuat materi.
+        </div>
+      )}
+    </div>
+  );
+}
