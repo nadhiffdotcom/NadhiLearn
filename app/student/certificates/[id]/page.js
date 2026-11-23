@@ -1,0 +1,357 @@
+
+import Link from "next/link";
+import { cookies } from "next/headers";
+import { redirect, notFound } from "next/navigation";
+
+import pool from "@/lib/db";
+import { verifyToken } from "@/lib/auth";
+import PrintButton from "./PrintButton";
+
+function formatDate(date) {
+  if (!date) return "-";
+
+  return new Date(date).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+async function getStudent() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("nadhi_student_token")?.value;
+
+  if (!token) redirect("/login");
+
+  const student = await verifyToken(token);
+
+  if (!student || student.role !== "student" || !student.id) {
+    redirect("/login");
+  }
+
+  const currentUser = await pool.query(
+    `SELECT role FROM users WHERE id = $1 LIMIT 1`,
+    [student.id]
+  );
+
+  if (currentUser.rows[0]?.role !== "student") {
+    redirect("/login");
+  }
+
+  return student;
+}
+
+export default async function CertificatePage({ params }) {
+  const { id } = await params;
+  const certificateId = Number(id);
+
+  if (!Number.isSafeInteger(certificateId) || certificateId <= 0) {
+    notFound();
+  }
+
+  const student = await getStudent();
+
+  const result = await pool.query(
+    `SELECT
+       cert.id,
+       cert.certificate_code,
+       COALESCE(
+         NULLIF(BTRIM(u.display_name), ''),
+         'Nama belum diatur'
+       ) AS student_name,
+       c.title AS course_title,
+       cert.issued_at
+     FROM certificates cert
+     JOIN enrollments e
+       ON e.id = cert.enrollment_id
+     JOIN users u
+       ON u.id = e.student_id
+     JOIN courses c
+       ON c.id = e.course_id
+     WHERE cert.id = $1
+       AND e.student_id = $2
+     LIMIT 1`,
+    [certificateId, student.id]
+  );
+
+  if (result.rows.length === 0) {
+    notFound();
+  }
+
+  const certificate = result.rows[0];
+
+  const verificationUrl = `/verify-certificates?code=${encodeURIComponent(
+    certificate.certificate_code
+  )}`;
+
+  return (
+    <div className="certificate-page min-h-screen bg-gray-100 px-3 py-5 sm:px-4 sm:py-8 md:px-8">
+      <div className="no-print mx-auto mb-6 flex max-w-5xl flex-col justify-between gap-3 sm:flex-row">
+        <Link
+          href="/student/my-courses"
+          className="inline-flex items-center justify-center rounded-lg border border-[#c2cce0] px-5 py-3 text-sm font-semibold text-[#101b36] transition hover:bg-[#0a1f4a] hover:text-white"
+        >
+          ← Kembali ke My Courses
+        </Link>
+
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Link
+            href={verificationUrl}
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#c2cce0] bg-white px-5 py-3 text-sm font-semibold text-[#101b36] transition hover:bg-[#e7edf7]"
+          >
+            <span>✓</span>
+            Verifikasi Sertifikat
+          </Link>
+
+          <PrintButton />
+        </div>
+      </div>
+
+      <div className="certificate-paper mx-auto aspect-auto min-h-[720px] w-full max-w-5xl bg-white p-1 shadow-xl sm:p-2 md:aspect-[297/210] md:min-h-0 md:p-5">
+        <div className="flex min-h-[700px] h-full w-full items-center justify-center border-[3px] border-[#c2cce0] p-1 md:min-h-0">
+          <div className="flex min-h-[680px] h-full w-full flex-col items-center justify-between border border-[#c2cce0] px-2 py-4 text-center text-[#101b36] sm:px-4 sm:py-5 md:min-h-0 md:px-12 md:py-4">
+            <div className="flex items-center justify-center gap-1 sm:gap-2">
+              <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg bg-white p-0.5 sm:h-10 sm:w-10 md:h-14 md:w-14">
+                <img
+                  src="/nadhilearn-logo.png"
+                  alt="Logo NadhiLearn"
+                  className="h-full w-full object-contain"
+                />
+              </div>
+
+              <h2 className="text-lg font-bold tracking-wide text-[#101b36] sm:text-xl md:text-3xl">
+                NadhiLearn
+              </h2>
+            </div>
+
+            <div className="mt-2">
+              <p className="text-[8px] font-semibold uppercase tracking-[0.25em] text-[#101b36] sm:text-[9px] sm:tracking-[0.35em] md:text-xs">
+                Certificate of Completion
+              </p>
+
+              <h1 className="mt-1 text-xl font-bold uppercase tracking-[0.15em] text-[#101b36] sm:text-2xl md:text-4xl">
+                Sertifikat
+              </h1>
+            </div>
+
+            <div className="mt-3 w-full">
+              <p className="text-xs text-gray-600 sm:text-sm">
+                Dengan bangga diberikan kepada
+              </p>
+
+              <h2
+                className="mt-4 text-4xl leading-tight text-[#101b36] sm:text-5xl md:text-7xl"
+                style={{ fontFamily: "'Great Vibes', cursive" }}
+              >
+                {certificate.student_name}
+              </h2>
+
+              <div className="mx-auto mt-2 h-px w-2/3 max-w-md bg-[#0a1f4a]" />
+            </div>
+
+            <div className="mt-3 w-full">
+              <p className="mx-auto max-w-2xl text-xs leading-5 text-gray-600 sm:text-sm sm:leading-6">
+                Telah berhasil menyelesaikan seluruh materi pembelajaran
+                pada course:
+              </p>
+
+              <h3 className="mt-2 break-words text-base font-bold text-[#101b36] sm:text-lg md:text-2xl">
+                {certificate.course_title}
+              </h3>
+            </div>
+
+            <div className="mt-3">
+              <p className="text-xs text-gray-600">Diterbitkan pada</p>
+
+              <p className="mt-1 text-sm font-semibold text-[#101b36] sm:text-base">
+                {formatDate(certificate.issued_at)}
+              </p>
+            </div>
+
+            <div className="mt-3 flex flex-col items-center">
+              <div className="relative flex h-20 w-64 items-end justify-center sm:w-72 md:h-24">
+                <img
+                  src="/nadhilearn-signature.png"
+                  alt="Tanda tangan Alisya Nadhifa Raihani"
+                  className="absolute bottom-[-60px] z-10 h-32 w-48 object-contain md:bottom-[-64px] md:h-40 md:w-56"
+                />
+              </div>
+
+              <div className="w-52 border-t border-[#c2cce0] sm:w-60" />
+
+              <p className="mt-1 text-xs font-bold text-[#101b36] sm:text-sm">
+                Alisya Nadhifa Raihani
+              </p>
+
+              <p className="mt-0.5 text-[10px] text-gray-600 sm:text-xs">
+                Administrator
+              </p>
+            </div>
+
+            <div className="mt-3 w-full border-t border-[#dce3ef] pt-2">
+              <p className="text-[8px] text-gray-400 sm:text-[9px]">
+                Certificate ID
+              </p>
+
+              <p className="mt-1 break-all font-mono text-[8px] tracking-wide text-gray-500 sm:text-[9px]">
+                {certificate.certificate_code}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p className="no-print mt-5 text-center text-xs text-gray-500">
+        Gunakan tombol Cetak / Simpan PDF untuk menyimpan sertifikat.
+      </p>
+
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
+
+        @media print {
+          @page {
+          size: A4 landscape;
+          margin: 0;
+        }
+
+          *,
+          *::before,
+          *::after {
+            box-sizing: border-box !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          html,
+          body {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 297mm !important;
+            min-height: 0 !important;
+            background: white !important;
+          }
+
+          body * {
+            visibility: hidden !important;
+          }
+
+          .certificate-page,
+          .certificate-page * {
+            visibility: visible !important;
+          }
+
+          .no-print {
+            display: none !important;
+          }
+
+          .certificate-page {
+            position: static !important;
+            display: block !important;
+            width: 297mm !important;
+            height: auto !important;
+            min-height: 0 !important;
+            max-height: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: visible !important;
+            background: white !important;
+          }
+
+          .certificate-paper {
+            position: relative !important;
+            display: block !important;
+            width: 297mm !important;
+            height: 210mm !important;
+            min-height: 0 !important;
+            max-height: 210mm !important;
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 5mm !important;
+            aspect-ratio: auto !important;
+            overflow: hidden !important;
+            background: white !important;
+            box-shadow: none !important;
+
+            /* Sertifikat pertama tidak memaksa halaman tambahan */
+            break-after: auto !important;
+            page-break-after: auto !important;
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+
+          /* Pemisah hanya setelah sertifikat pertama jika ada salinan */
+        .certificate-paper-has-copies {
+          break-after: page !important;
+          page-break-after: always !important;
+        }
+
+        /* Salinan tidak membuat pemisah tambahan */
+        .certificate-paper-copy {
+          break-before: auto !important;
+          page-break-before: auto !important;
+          break-after: auto !important;
+          page-break-after: auto !important;
+        }
+
+          .certificate-paper > div {
+            display: flex !important;
+            width: 100% !important;
+            height: 100% !important;
+            min-height: 0 !important;
+            max-height: 100% !important;
+            padding: 1mm !important;
+            overflow: hidden !important;
+          }
+
+          .certificate-paper > div > div {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            width: 100% !important;
+            height: 100% !important;
+            min-height: 0 !important;
+            max-height: 100% !important;
+            padding: 3mm 10mm !important;
+            gap: 0 !important;
+            overflow: hidden !important;
+          }
+
+          .certificate-paper > div > div > * {
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+            flex-shrink: 1 !important;
+          }
+
+          .certificate-paper img[alt="Logo NadhiLearn"] {
+            width: 12mm !important;
+            height: 12mm !important;
+          }
+
+          .certificate-paper h1 {
+            font-size: 25pt !important;
+          }
+
+          .certificate-paper h2 {
+            line-height: 1.1 !important;
+          }
+
+          .certificate-paper h3 {
+            margin-top: 1mm !important;
+            font-size: 17pt !important;
+          }
+
+          .certificate-paper img[alt^="Tanda tangan"] {
+            bottom: -8mm !important;
+            height: 30mm !important;
+            width: 45mm !important;
+          }
+
+          .certificate-paper > div > div > div:last-child {
+            padding-top: 1mm !important;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
