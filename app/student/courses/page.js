@@ -1,0 +1,581 @@
+import Link from "next/link";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+
+import pool from "@/lib/db";
+import { verifyToken } from "@/lib/auth";
+
+// ========================================
+// HELPER: FORMAT TANGGAL
+// ========================================
+function formatDate(date) {
+  if (!date) return "Lifetime";
+
+  const dateString =
+    date instanceof Date
+      ? date.toISOString().slice(0, 10)
+      : String(date).slice(0, 10);
+
+  const [year, month, day] = dateString.split("-").map(Number);
+
+  return new Date(year, month - 1, day).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+// ========================================
+// HELPER: PAGE URL
+// ========================================
+function getPageUrl(page, search, categoryId) {
+  const params = new URLSearchParams();
+
+  if (search) params.set("q", search);
+  if (categoryId) params.set("category", categoryId);
+
+  params.set("page", String(page));
+
+  return `/student/courses?${params.toString()}`;
+}
+
+// ========================================
+// SERVER ACTION: ENROLL COURSE
+// ========================================
+async function enrollCourse(formData) {
+  "use server";
+
+  const courseId = Number(formData.get("course_id"));
+
+  if (!Number.isSafeInteger(courseId) || courseId <= 0) {
+    redirect("/student/courses");
+  }
+
+  const cookieStore = await cookies();
+  const token = cookieStore.get("nadhi_student_token")?.value;
+
+  if (!token) {
+    redirect("/login");
+  }
+
+  const student = await verifyToken(token);
+
+  if (!student || student.role !== "student" || !student.id) {
+    redirect("/login");
+  }
+
+  const currentUser = await pool.query(
+    `SELECT role FROM users WHERE id = $1 LIMIT 1`,
+    [student.id]
+  );
+
+  if (currentUser.rows[0]?.role !== "student") {
+    redirect("/login");
+  }
+
+  const course = await pool.query(
+    "SELECT id FROM courses WHERE id = $1 LIMIT 1",
+    [courseId]
+  );
+
+  if (course.rows.length === 0) {
+    redirect("/student/courses");
+  }
+
+  await pool.query(
+    `INSERT INTO enrollments
+      (student_id, course_id, enrolled_at, status)
+     VALUES ($1, $2, NOW(), 'active')
+     ON CONFLICT (student_id, course_id)
+     DO UPDATE SET
+       status = 'active',
+       enrolled_at = NOW()`,
+    [student.id, courseId]
+  );
+
+  revalidatePath("/student/courses");
+  revalidatePath("/student/my-courses");
+
+  redirect("/student/my-courses");
+}
+
+// ========================================
+// MAIN PAGE
+// ========================================
+export default async function CoursesPage({ searchParams }) {
+  const params = await searchParams;
+
+  const search =
+    typeof params?.q === "string" ? params.q.trim() : "";
+
+  const categoryId =
+    typeof params?.category === "string" &&
+    /^\d+$/.test(params.category)
+      ? params.category
+      : "";
+
+  const requestedPage = Math.max(
+    1,
+    Number.parseInt(params?.page || "1", 10) || 1
+  );
+
+  const limit = 10;
+
+  // ========================================
+  // CHECK STUDENT LOGIN
+  // ========================================
+  const cookieStore = await cookies();
+  const token = cookieStore.get("nadhi_student_token")?.value;
+
+  let studentId = null;
+
+  if (token) {
+    const payload = await verifyToken(token);
+
+    if (payload?.role === "student" && payload?.id) {
+      const currentUser = await pool.query(
+        `SELECT id, role FROM users WHERE id = $1 LIMIT 1`,
+        [payload.id]
+      );
+
+      if (currentUser.rows[0]?.role === "student") {
+        studentId = currentUser.rows[0].id;
+      }
+    }
+  }
+
+  // ========================================
+  // GET CATEGORIES
+  // ========================================
+  const categoryResult = await pool.query(
+    `SELECT id, name
+     FROM categories
+     ORDER BY name ASC`
+  );
+
+  const categories = categoryResult.rows;
+
+  // ========================================
+  // BUILD FILTER
+  // ========================================
+  function buildFilter(startIndex = 1) {
+    const conditions = [];
+    const values = [];
+
+    if (search) {
+      values.push(`%${search}%`);
+      const index = startIndex + values.length - 1;
+
+      conditions.push(`
+        (
+          c.title ILIKE $${index}
+          OR c.description ILIKE $${index}
+          OR cat.name ILIKE $${index}
+          OR teacher.username ILIKE $${index}
+          OR teacher.display_name ILIKE $${index}     
+          )
+      `);
+    }
+
+    if (categoryId) {
+      values.push(categoryId);
+      const index = startIndex + values.length - 1;
+
+      conditions.push(`c.category_id = $${index}`);
+    }
+
+    return {
+      where: conditions.length
+        ? `WHERE ${conditions.join(" AND ")}`
+        : "",
+      values,
+    };
+  }
+
+  // ========================================
+  // COUNT COURSES
+  // ========================================
+  const countFilter = buildFilter(1);
+
+  const countResult = await pool.query(
+    `
+      SELECT COUNT(*)::int AS total
+      FROM courses c
+      LEFT JOIN categories cat
+        ON cat.id = c.category_id
+      LEFT JOIN users teacher
+        ON teacher.id = c.teacher_id
+      ${countFilter.where}
+    `,
+    countFilter.values
+  );
+
+  const totalCourses = countResult.rows[0].total;
+  const totalPages = Math.ceil(totalCourses / limit);
+
+  const currentPage = Math.min(
+    requestedPage,
+    Math.max(totalPages, 1)
+  );
+
+  const offset = (currentPage - 1) * limit;
+
+  // ========================================
+  // GET COURSES
+  // ========================================
+  const listFilter = buildFilter(2);
+
+  const courseResult = await pool.query(
+  `
+    SELECT
+      c.id,
+      c.title,
+      c.description,
+      c.thumbnail,
+      c.start_date,
+      c.end_date,
+      cat.name AS category_name,
+
+      teacher.display_name AS teacher_name,
+
+      teacher.email AS teacher_email,
+
+      CASE
+        WHEN e.id IS NOT NULL THEN TRUE
+        ELSE FALSE
+      END AS is_enrolled,
+
+      (
+        SELECT COUNT(*)::int
+        FROM contents ct
+        WHERE ct.course_id = c.id
+      ) AS total_contents,
+
+      (
+        SELECT COUNT(*)::int
+        FROM content_progress cp
+        JOIN contents ct ON ct.id = cp.content_id
+        WHERE cp.enrollment_id = e.id
+          AND cp.is_completed = TRUE
+          AND ct.course_id = c.id
+      ) AS completed_contents
+
+    FROM courses c
+
+    LEFT JOIN categories cat
+      ON cat.id = c.category_id
+
+    LEFT JOIN users teacher
+      ON teacher.id = c.teacher_id
+
+    LEFT JOIN enrollments e
+      ON e.course_id = c.id
+      AND e.student_id = $1
+      AND e.status = 'active'
+
+    ${listFilter.where}
+
+    ORDER BY c.created_at DESC
+
+    LIMIT $${listFilter.values.length + 2}
+    OFFSET $${listFilter.values.length + 3}
+  `,
+    [
+      studentId,
+      ...listFilter.values,
+      limit,
+      offset,
+    ]
+  );
+
+  const courses = courseResult.rows;
+
+  // ========================================
+  // RENDER PAGE
+  // ========================================
+  return (
+    <div className="min-h-screen bg-[#f4f7fc] px-5 py-8 md:px-8">
+
+      {/* PAGE HEADER */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-[#101b36]">
+          Browse Courses
+        </h1>
+
+        <p className="mt-2 text-gray-500">
+          Temukan kelas dan tingkatkan kemampuanmu bersama
+          pengajar terbaik.
+        </p>
+      </div>
+
+      {/* SEARCH AND FILTER */}
+      <form
+        method="GET"
+        action="/student/courses"
+        className="mb-8 flex flex-col gap-3 rounded-xl border border-[#dce3ef] bg-white p-4 shadow-sm md:flex-row"
+      >
+        <input
+          type="text"
+          name="q"
+          defaultValue={search}
+          placeholder="Cari nama course atau teacher..."
+          className="min-w-0 flex-1 rounded-lg border border-[#dce3ef] px-4 py-3 text-sm outline-none transition focus:border-[#c2cce0] focus:ring-1 focus:ring-[#0a1f4a]"
+        />
+
+        <select
+          name="category"
+          defaultValue={categoryId}
+          className="rounded-lg border border-[#dce3ef] bg-white px-4 py-3 text-sm outline-none transition focus:border-[#c2cce0]"
+        >
+          <option value="">Semua Kategori</option>
+
+          {categories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
+            </option>
+          ))}
+        </select>
+
+        <button
+          type="submit"
+          className="rounded-lg bg-[#0a1f4a] px-6 py-3 text-sm font-semibold text-white transition duration-200 hover:bg-[#1b3a7a]"
+        >
+          Cari Course
+        </button>
+      </form>
+
+      {/* COURSE COUNT */}
+      <div className="mb-5 flex items-center justify-between">
+        <h2 className="text-lg font-bold text-[#101b36]">
+          Semua Course
+        </h2>
+
+        <p className="text-sm text-gray-500">
+          {totalCourses} course ditemukan
+        </p>
+      </div>
+
+      {/* COURSE LIST */}
+      {courses.length === 0 ? (
+        <div className="rounded-xl border border-[#dce3ef] bg-white px-5 py-16 text-center">
+          <div className="mb-3 text-4xl">📚</div>
+
+          <h3 className="text-lg font-bold text-[#101b36]">
+            Course tidak ditemukan
+          </h3>
+
+          <p className="mt-2 text-sm text-gray-500">
+            Coba gunakan kata kunci atau kategori lainnya.
+          </p>
+
+          <Link
+            href="/student/courses"
+            className="mt-5 inline-block rounded-lg bg-[#0a1f4a] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1b3a7a]"
+          >
+            Reset Pencarian
+          </Link>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            {courses.map((course) => {
+              const totalContents = Number(course.total_contents) || 0;
+              const completedContents =
+                Number(course.completed_contents) || 0;
+
+              const progress =
+                totalContents > 0
+                  ? Math.round(
+                      (completedContents / totalContents) * 100
+                    )
+                  : 0;
+
+              return (
+                <div
+                  key={course.id}
+                  className="group overflow-hidden rounded-xl border border-[#dce3ef] bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+                >
+                  {/* THUMBNAIL */}
+                  <div className="h-44 overflow-hidden bg-gray-100">
+                    {course.thumbnail ? (
+                      <img
+                        src={course.thumbnail}
+                        alt={course.title}
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-5xl">
+                        📚
+                      </div>
+                    )}
+                  </div>
+
+                  {/* COURSE INFO */}
+                  <div className="p-5">
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                        {course.category_name || "Tanpa Kategori"}
+                      </span>
+
+                      {course.is_enrolled && (
+                        <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
+                          Terdaftar
+                        </span>
+                      )}
+                    </div>
+
+                    <h3 className="mb-2 line-clamp-2 text-lg font-bold text-[#101b36]">
+                      {course.title}
+                    </h3>
+
+                    <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-gray-500">
+                      {course.description || "Belum ada deskripsi course."}
+                    </p>
+
+                    {/* TEACHER AND PERIOD */}
+                    <div className="mb-4 space-y-2 border-t border-gray-100 pt-4 text-sm">
+                      <p className="text-gray-600">
+                        <span className="font-semibold text-[#101b36]">
+                          Teacher:
+                        </span>{" "}
+                        {course.teacher_name || "Belum ditentukan"}
+                      </p>
+
+                      {course.teacher_email && (
+                        <a
+                          href={`mailto:${course.teacher_email}`}
+                          className="inline-block font-medium text-blue-700 hover:underline"
+                        >
+                          Hubungi Teacher
+                        </a>
+                      )}
+
+                      <p className="text-gray-600">
+                        <span className="font-semibold text-[#101b36]">
+                          Periode:
+                        </span>{" "}
+                        {formatDate(course.start_date)} –{" "}
+                        {formatDate(course.end_date)}
+                      </p>
+                    </div>
+
+                    {/* LEARNING PROGRESS */}
+                    {course.is_enrolled && (
+                      <div className="mb-4">
+                        <div className="mb-1 flex items-center justify-between text-xs">
+                          <span className="font-semibold text-[#101b36]">
+                            Progress Belajar
+                          </span>
+
+                          <span className="text-gray-500">
+                            {progress}%
+                          </span>
+                        </div>
+
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                          <div
+                            className="h-full rounded-full bg-green-500"
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+
+                        <p className="mt-1 text-xs text-gray-500">
+                          {completedContents} dari {totalContents} materi selesai
+                        </p>
+                      </div>
+                    )}
+
+                    {/* ACTION */}
+                    {course.is_enrolled ? (
+                      <Link
+                        href="/student/my-courses"
+                        className="block rounded-lg border border-[#c2cce0] px-4 py-3 text-center text-sm font-semibold text-[#101b36] transition duration-200 hover:bg-[#0a1f4a] hover:text-white"
+                      >
+                        Lanjutkan Belajar
+                      </Link>
+                    ) : studentId ? (
+                      <form action={enrollCourse}>
+                        <input
+                          type="hidden"
+                          name="course_id"
+                          value={course.id}
+                        />
+
+                        <button
+                          type="submit"
+                          className="w-full rounded-lg bg-[#0a1f4a] px-4 py-3 text-sm font-semibold text-white transition duration-200 hover:bg-[#1b3a7a]"
+                        >
+                          Ikuti Course
+                        </button>
+                      </form>
+                    ) : (
+                      <Link
+                        href="/login"
+                        className="block rounded-lg bg-[#0a1f4a] px-4 py-3 text-center text-sm font-semibold text-white transition duration-200 hover:bg-[#1b3a7a]"
+                      >
+                        Login untuk Mengikuti
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* PAGINATION */}
+          {totalPages > 1 && (
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
+              {currentPage > 1 && (
+                <Link
+                  href={getPageUrl(
+                    currentPage - 1,
+                    search,
+                    categoryId
+                  )}
+                  className="rounded-lg border border-[#dce3ef] bg-white px-4 py-2 text-sm font-medium text-[#101b36] transition hover:bg-[#e7edf7]"
+                >
+                  Sebelumnya
+                </Link>
+              )}
+
+              {Array.from(
+                { length: totalPages },
+                (_, index) => index + 1
+              ).map((page) => (
+                <Link
+                  key={page}
+                  href={getPageUrl(page, search, categoryId)}
+                  className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+                    currentPage === page
+                      ? "bg-[#0a1f4a] text-white"
+                      : "border border-[#dce3ef] bg-white text-[#101b36] hover:bg-[#e7edf7]"
+                  }`}
+                >
+                  {page}
+                </Link>
+              ))}
+
+              {currentPage < totalPages && (
+                <Link
+                  href={getPageUrl(
+                    currentPage + 1,
+                    search,
+                    categoryId
+                  )}
+                  className="rounded-lg border border-[#dce3ef] bg-white px-4 py-2 text-sm font-medium text-[#101b36] transition hover:bg-[#e7edf7]"
+                >
+                  Selanjutnya
+                </Link>
+              )}
+            </div>
+          )}
+
+          <p className="mt-4 text-center text-xs text-gray-400">
+            Halaman {currentPage} dari {Math.max(totalPages, 1)}
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
